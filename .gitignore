@@ -1,0 +1,29 @@
+.idea/
+*.iml
+.vscode/
+
+
+.DS_Store
+Thumbs.db
+
+
+# Java / Spring Boot
+backend/target/
+backend/.mvn/
+*.class
+*.log
+
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-secret.yml
+backend/.env
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.vite/
+
+coverage/
+tmp/
+temp/
