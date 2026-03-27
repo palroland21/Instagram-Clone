@@ -8,9 +8,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class ProjectApplication {
 
 	public static void main(String[] args) {
-		User user = new User();
-		user.setUsername("alex");
-		System.out.println(user.getUsername());
 		SpringApplication.run(ProjectApplication.class, args);
 	}
 
