@@ -9,7 +9,6 @@ import java.util.ArrayList;
 @Data
 @Entity
 @Table(name = "pictures")
-
 public class Picture {
 
         @Id
@@ -19,6 +18,7 @@ public class Picture {
         @Column
         private String pictureURL;
 
-
-
+        @ManyToOne
+        @JoinColumn(name = "post_id", nullable = false)
+        private Post post; //picture trb sa stie de care post apartine
 }

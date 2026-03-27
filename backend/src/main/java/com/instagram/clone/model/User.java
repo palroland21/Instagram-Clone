@@ -39,7 +39,9 @@ public class User {
     private String profile_picture;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private Role role;
 
-
+    @Column(nullable = false)
+    private Double score = 0.0;
 }

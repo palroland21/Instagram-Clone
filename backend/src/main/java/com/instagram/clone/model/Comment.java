@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -18,33 +19,22 @@ public class Comment {
         private Long id_comm;
 
         @ManyToOne
-        @JoinColumn(name = "id_user", referencedColumnName = "id")
-//        @Column(unique = true, nullable = false)
+        @JoinColumn(name = "user_id", nullable = false)
         private User user;
 
         @ManyToOne
-        @JoinColumn(name = "id_post", referencedColumnName = "id_post")
-//        @Column(unique = true, nullable = false)
+        @JoinColumn(name = "post_id",nullable = false)
         private Post post;
 
-         @Column
-         private String profile_picture;
-
-         @Column
-         private String caption;
-
-         @Column
-         private LocalDateTime posted_at;
+        @Column
+        private String text;
 
         @Column
-        private Long nbLikes;
+        private String pictureUrl;
 
         @Column
-        private Long nbDislikes;
+        private LocalDateTime postedAt;
 
-
-
-
-
-
+        @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<CommentVote> votes = new ArrayList<>();
 }

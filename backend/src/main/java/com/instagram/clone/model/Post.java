@@ -1,5 +1,6 @@
 package com.instagram.clone.model;
 
+import com.instagram.clone.enums.PostStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -18,17 +19,15 @@ public class Post {
         private Long id_post;
 
         @ManyToOne
-        @JoinColumn(name = "id_user", referencedColumnName = "id")
-//        @Column(unique = true, nullable = false)
+        @JoinColumn(name = "user_id",nullable = false)
         private User user;
 
+        @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+//        @Column
+        private List<Picture> pictures = new ArrayList<>();
+
         @Column
-        private String profile_picture;
-
-
-        @OneToMany
-        @Column(nullable = false)
-        private List<Picture> post_picture;
+        private String pictureUrl;
 
         @Column
         private String location;
@@ -37,15 +36,29 @@ public class Post {
         private String caption;
 
         @Column
-        private LocalDateTime created_at;
+        private String title;
 
-        @Column
-        private Long nbLikes;
+        @Column(nullable = false)
+        private LocalDateTime createdAt;
 
-        @Column
-        private Long nbDislikes;
+        @Enumerated(EnumType.STRING)
+        @Column(nullable = false)
+        private PostStatus status;
 
+        @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<PostVote> votes = new ArrayList<>();
 
+        @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<Comment> comments = new ArrayList<>();
+
+        //persist -> daca fac un post nou, cu taguri noi, se vor salva si ele automat
+        //merge -> cand fac update pe post se propaga si in tag
+        @ManyToMany(cascade ={CascadeType.PERSIST, CascadeType.MERGE})
+        @JoinTable(name="post_tags",
+        joinColumns = @JoinColumn(name="post_id"),
+        inverseJoinColumns = @JoinColumn(name="tag_id"))
+        private List<Tag> tags = new ArrayList<>();
+        //tabela post_tags va contine legaturile dintre post si tag
     }
 
 
