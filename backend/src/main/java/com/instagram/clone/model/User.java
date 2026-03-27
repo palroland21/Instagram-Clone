@@ -27,16 +27,16 @@ public class User {
     private String password;
 
     @Column(nullable = false)
-    private String full_name;
+    private String fullName;
 
     @Column
     private String bio;
 
     @Column
-    private LocalDateTime created_at;
+    private LocalDateTime createdAt;
 
     @Column
-    private String profile_picture;
+    private String profilePicture;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
