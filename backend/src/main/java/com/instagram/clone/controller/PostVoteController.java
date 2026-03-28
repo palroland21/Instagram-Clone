@@ -2,6 +2,7 @@ package com.instagram.clone.controller;
 
 import com.instagram.clone.model.PostVote;
 import com.instagram.clone.service.PostVoteService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,28 +18,18 @@ public class PostVoteController {
     }
 
     @PostMapping
-    public PostVote create(@RequestBody PostVote postVote) {
-        return postVoteService.create(postVote);
-    }
-
-    @GetMapping("/{id}")
-    public PostVote getById(@PathVariable Long id) {
-        return postVoteService.getById(id);
+    public ResponseEntity<PostVote> create(@RequestBody PostVote postVote) {
+        // Folosim metoda 'create' din service-ul tău
+        return ResponseEntity.ok(postVoteService.create(postVote));
     }
 
     @GetMapping
-    public List<PostVote> getAll() {
-        return postVoteService.getAll();
+    public ResponseEntity<List<PostVote>> getAll() {
+        return ResponseEntity.ok(postVoteService.getAll());
     }
 
-    @PutMapping("/{id}")
-    public PostVote update(@PathVariable Long id, @RequestBody PostVote updatedPostVote) {
-        return postVoteService.update(id, updatedPostVote);
-    }
-
-    @DeleteMapping("/{id}")
-    public String delete(@PathVariable Long id) {
-        postVoteService.delete(id);
-        return "PostVote deleted successfully";
+    @GetMapping("/{id}")
+    public ResponseEntity<PostVote> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(postVoteService.getById(id));
     }
 }
