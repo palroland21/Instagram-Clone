@@ -12,5 +12,6 @@ import java.util.Optional;
 @Repository
 public interface PostVoteRepository extends CrudRepository<PostVote, Long> {
     Optional<PostVote> findByUserAndPost(User user, Post post);
+    boolean existsByUserAndPost(User user, Post post);
     List<PostVote> findByPost(Post post);
 }

@@ -12,5 +12,6 @@ import java.util.Optional;
 @Repository
 public interface CommentVoteRepository extends CrudRepository<CommentVote, Long> {
     Optional<CommentVote> findByUserAndComment(User user, Comment comment);
+    boolean existsByUserAndComment(User user, Comment comment);
     List<CommentVote> findByComment(Comment comment);
 }

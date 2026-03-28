@@ -1,11 +1,9 @@
 package com.instagram.clone.model;
 
-import com.instagram.clone.enums.Role;
+import com.instagram.clone.model.enums.Role;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 @Data
@@ -38,7 +36,7 @@ public class User {
     @Column
     private String profilePicture;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(255)")
     @Enumerated(EnumType.STRING)
     private Role role;
 

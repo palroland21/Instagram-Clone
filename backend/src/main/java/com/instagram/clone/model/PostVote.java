@@ -1,10 +1,9 @@
 package com.instagram.clone.model;
 
-import com.instagram.clone.enums.VoteType;
+import com.instagram.clone.model.enums.VoteType;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name = "post_votes",uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "post_id"}))
@@ -23,6 +22,6 @@ public class PostVote {
     private Post post;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(255)")
     private VoteType voteType;
 }

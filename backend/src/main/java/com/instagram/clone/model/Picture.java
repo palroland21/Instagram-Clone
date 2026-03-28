@@ -13,7 +13,7 @@ public class Picture {
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long id_picture;
+        private Long id;
 
         @Column
         private String pictureURL;
