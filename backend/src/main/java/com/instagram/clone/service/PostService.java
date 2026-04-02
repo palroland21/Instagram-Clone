@@ -1,5 +1,6 @@
 package com.instagram.clone.service;
 
+import com.instagram.clone.model.Picture;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.Tag;
 import com.instagram.clone.model.enums.PostStatus;
@@ -56,6 +57,15 @@ public class PostService {
         existing.setTitle(updatedPost.getTitle());
         existing.setStatus(updatedPost.getStatus());
         existing.setTags(updatedPost.getTags());
+
+        if(updatedPost.getPictures() != null) {
+            for(Picture picture : updatedPost.getPictures()) {
+                picture.setPost(existing);
+                existing.getPictures().add(picture);
+            }
+        }
+
+
         return postRepository.save(existing);
     }
 
