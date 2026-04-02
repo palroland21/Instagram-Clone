@@ -39,7 +39,6 @@ class CommentControllerTest {
     @WithMockUser
     void create_ShouldReturnComment() throws Exception {
         Comment commentRequest = new Comment();
-        // Aici am corectat din setContent în setText
         commentRequest.setText("Super poză!");
 
         Comment savedComment = new Comment();
@@ -54,7 +53,6 @@ class CommentControllerTest {
                         .content(objectMapper.writeValueAsString(commentRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                // Și aici verificăm câmpul "text" din JSON
                 .andExpect(jsonPath("$.text").value("Super poză!"));
     }
 

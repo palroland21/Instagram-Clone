@@ -31,7 +31,6 @@ class PictureServiceTest {
 
     @Test
     void create_ShouldReturnSavedPicture() {
-        // GIVEN
         Post mockPost = new Post();
         mockPost.setId(1L);
 
@@ -39,14 +38,11 @@ class PictureServiceTest {
         picture.setPictureURL("https://cdn.instagram.com/p123.jpg");
         picture.setPost(mockPost);
 
-        // Simulăm găsirea postării și salvarea pozei
         when(postRepository.findById(1L)).thenReturn(Optional.of(mockPost));
         when(pictureRepository.save(any(Picture.class))).thenReturn(picture);
 
-        // WHEN
         Picture saved = pictureService.create(picture);
 
-        // THEN
         assertNotNull(saved);
         assertEquals("https://cdn.instagram.com/p123.jpg", saved.getPictureURL());
         assertEquals(1L, saved.getPost().getId());

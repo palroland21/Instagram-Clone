@@ -50,14 +50,12 @@ class PostServiceTest {
 
     @Test
     void create_ShouldSetStatusAndMapTags_WhenSuccessful() {
-        // GIVEN
         when(tagRepository.findById(1L)).thenReturn(Optional.of(testTag));
         when(postRepository.save(any(Post.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // WHEN
+
         Post result = postService.create(testPost);
 
-        // THEN
         assertNotNull(result);
         assertEquals(PostStatus.JUST_POSTED, result.getStatus());
         assertNotNull(result.getCreatedAt());
@@ -70,10 +68,8 @@ class PostServiceTest {
 
     @Test
     void create_ShouldThrowException_WhenTagNotFound() {
-        // GIVEN
         when(tagRepository.findById(1L)).thenReturn(Optional.empty());
 
-        // WHEN & THEN
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             postService.create(testPost);
         });
@@ -84,32 +80,58 @@ class PostServiceTest {
 
     @Test
     void getById_ShouldReturnPost_WhenExists() {
-        // GIVEN
         when(postRepository.findById(1L)).thenReturn(Optional.of(testPost));
 
-        // WHEN
         Post result = postService.getById(1L);
 
-        // THEN
         assertNotNull(result);
         assertEquals("Aventura la munte", result.getTitle());
     }
 
     @Test
     void getById_ShouldThrowException_WhenNotFound() {
-        // GIVEN
         when(postRepository.findById(99L)).thenReturn(Optional.empty());
 
-        // WHEN & THEN
         assertThrows(RuntimeException.class, () -> postService.getById(99L));
     }
 
     @Test
+    void getAll_ShouldReturnListOfPosts() {
+        when(postRepository.findAll()).thenReturn(List.of(testPost));
+
+        List<Post> result = postService.getAll();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Aventura la munte", result.get(0).getTitle());
+        verify(postRepository, times(1)).findAll();
+    }
+
+    @Test
+    void update_ShouldUpdateAndReturnPost_WhenExists() {
+        Post updatedInfo = new Post();
+        updatedInfo.setTitle("Titlu Nou");
+        updatedInfo.setCaption("Caption Nou");
+        updatedInfo.setLocation("Locatie Noua");
+
+        when(postRepository.findById(1L)).thenReturn(Optional.of(testPost));
+        when(postRepository.save(any(Post.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Post result = postService.update(1L, updatedInfo);
+
+        assertNotNull(result);
+        assertEquals("Titlu Nou", result.getTitle());
+        assertEquals("Caption Nou", result.getCaption());
+        assertEquals("Locatie Noua", result.getLocation());
+
+        verify(postRepository, times(1)).findById(1L);
+        verify(postRepository, times(1)).save(any(Post.class));
+    }
+
+    @Test
     void delete_ShouldCallRepository() {
-        // WHEN
         postService.delete(1L);
 
-        // THEN
         verify(postRepository, times(1)).deleteById(1L);
     }
 }

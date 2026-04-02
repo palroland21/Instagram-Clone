@@ -24,16 +24,13 @@ class TagServiceTest {
 
     @Test
     void create_ShouldReturnSavedTag() {
-        // GIVEN
         Tag tag = new Tag();
         tag.setName("#spring_boot");
 
         when(tagRepository.save(any(Tag.class))).thenReturn(tag);
 
-        // WHEN
         Tag saved = tagService.create(tag);
 
-        // THEN
         assertNotNull(saved, "Tag-ul salvat nu ar trebui să fie null");
         assertEquals("#spring_boot", saved.getName());
     }

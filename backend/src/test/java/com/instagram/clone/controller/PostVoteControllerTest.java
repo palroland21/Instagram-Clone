@@ -40,7 +40,6 @@ class PostVoteControllerTest {
     @Test
     @WithMockUser
     void create_ShouldReturnOk() throws Exception {
-        // GIVEN
         User user = new User();
         user.setId(1L);
 
@@ -50,16 +49,14 @@ class PostVoteControllerTest {
         PostVote voteRequest = new PostVote();
         voteRequest.setUser(user);
         voteRequest.setPost(post);
-        voteRequest.setVoteType(VoteType.LIKE); // Folosim LIKE din enum-ul tău
+        voteRequest.setVoteType(VoteType.LIKE);
 
         PostVote savedVote = new PostVote();
         savedVote.setId(500L);
         savedVote.setVoteType(VoteType.LIKE);
 
-        // Facem mock pe metoda 'create'
         when(postVoteService.create(any(PostVote.class))).thenReturn(savedVote);
 
-        // WHEN & THEN
         mockMvc.perform(post("/post-votes")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)

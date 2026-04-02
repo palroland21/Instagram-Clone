@@ -55,18 +55,15 @@ class CommentServiceTest {
 
     @Test
     void create_ShouldReturnSavedComment_WhenUserAndPostExist() {
-        // GIVEN
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser)); //
-        when(postRepository.findById(1L)).thenReturn(Optional.of(testPost)); //
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(postRepository.findById(1L)).thenReturn(Optional.of(testPost));
         when(commentRepository.save(any(Comment.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        // WHEN
         Comment result = commentService.create(testComment);
 
-        // THEN
         assertNotNull(result);
         assertEquals("Ce poza superba!", result.getText());
-        assertNotNull(result.getPostedAt()); // Verificăm setarea automată a datei
+        assertNotNull(result.getPostedAt());
         assertEquals(testUser, result.getUser());
         assertEquals(testPost, result.getPost());
 
@@ -77,48 +74,39 @@ class CommentServiceTest {
 
     @Test
     void create_ShouldThrowException_WhenUserNotFound() {
-        // GIVEN
-        when(userRepository.findById(1L)).thenReturn(Optional.empty()); // Simulăm că userul lipsește
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
-        // WHEN & THEN
         RuntimeException exception = assertThrows(RuntimeException.class, () -> commentService.create(testComment));
-        assertEquals("User not found", exception.getMessage()); //
+        assertEquals("User not found", exception.getMessage());
 
         verify(commentRepository, never()).save(any());
     }
 
     @Test
     void create_ShouldThrowException_WhenPostNotFound() {
-        // GIVEN
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(postRepository.findById(1L)).thenReturn(Optional.empty()); // Simulăm că postarea lipsește
+        when(postRepository.findById(1L)).thenReturn(Optional.empty());
 
-        // WHEN & THEN
         RuntimeException exception = assertThrows(RuntimeException.class, () -> commentService.create(testComment));
-        assertEquals("Post not found", exception.getMessage()); //
+        assertEquals("Post not found", exception.getMessage());
 
         verify(commentRepository, never()).save(any());
     }
 
     @Test
     void getById_ShouldReturnComment_WhenExists() {
-        // GIVEN
         when(commentRepository.findById(1L)).thenReturn(Optional.of(testComment));
 
-        // WHEN
         Comment result = commentService.getById(1L);
 
-        // THEN
         assertNotNull(result);
         assertEquals(1L, result.getId());
     }
 
     @Test
     void delete_ShouldCallRepository() {
-        // WHEN
         commentService.delete(1L);
 
-        // THEN
         verify(commentRepository, times(1)).deleteById(1L);
     }
 }

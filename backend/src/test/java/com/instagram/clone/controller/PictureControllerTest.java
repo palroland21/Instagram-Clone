@@ -35,7 +35,6 @@ class PictureControllerTest {
     void getById_ShouldReturnPicture() throws Exception {
         Picture pic = new Picture();
         pic.setId(1L);
-        // Atenție: Folosesc setPictureURL pentru că așa apărea în PictureService-ul tău
         pic.setPictureURL("http://aws.s3/my_photo.jpg");
 
         when(pictureService.getById(1L)).thenReturn(pic);

@@ -30,9 +30,8 @@ class CommentVoteControllerTest {
     @Test
     @WithMockUser
     void delete_ShouldReturnSuccessMessage() throws Exception {
-        // Testăm metoda delete din Controller-ul tău
         mockMvc.perform(delete("/comment-votes/1")
-                        .with(csrf())) // Obligatoriu pentru DELETE dacă ai securitate activă
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(content().string("CommentVote deleted successfully"));
     }

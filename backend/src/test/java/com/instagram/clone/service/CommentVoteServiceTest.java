@@ -37,7 +37,6 @@ class CommentVoteServiceTest {
 
     @Test
     void create_ShouldReturnSavedCommentVote() {
-        // GIVEN
         User user = new User();
         user.setId(1L);
 
@@ -49,15 +48,12 @@ class CommentVoteServiceTest {
         vote.setComment(comment);
         vote.setVoteType(VoteType.LIKE);
 
-        // Simulăm verificările de existență din service
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(commentRepository.findById(10L)).thenReturn(Optional.of(comment));
         when(commentVoteRepository.save(any(CommentVote.class))).thenReturn(vote);
 
-        // WHEN
         CommentVote saved = commentVoteService.create(vote);
 
-        // THEN
         assertNotNull(saved);
         assertEquals(VoteType.LIKE, saved.getVoteType());
     }

@@ -52,15 +52,12 @@ class PostVoteServiceTest {
 
     @Test
     void create_ShouldReturnSavedVote_WhenUserAndPostExist() {
-        // GIVEN
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(postRepository.findById(1L)).thenReturn(Optional.of(testPost));
         when(postVoteRepository.save(any(PostVote.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        // WHEN
         PostVote result = postVoteService.create(testPostVote);
 
-        // THEN
         assertNotNull(result);
         assertEquals(testUser, result.getUser());
         assertEquals(testPost, result.getPost());
@@ -72,10 +69,8 @@ class PostVoteServiceTest {
 
     @Test
     void create_ShouldThrowException_WhenUserNotFound() {
-        // GIVEN
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
-        // WHEN & THEN
         RuntimeException exception = assertThrows(RuntimeException.class, () -> postVoteService.create(testPostVote));
         assertEquals("User not found", exception.getMessage());
 
@@ -84,11 +79,9 @@ class PostVoteServiceTest {
 
     @Test
     void create_ShouldThrowException_WhenPostNotFound() {
-        // GIVEN
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(postRepository.findById(1L)).thenReturn(Optional.empty());
 
-        // WHEN & THEN
         RuntimeException exception = assertThrows(RuntimeException.class, () -> postVoteService.create(testPostVote));
         assertEquals("Post not found", exception.getMessage());
 
@@ -97,20 +90,16 @@ class PostVoteServiceTest {
 
     @Test
     void getById_ShouldReturnVote_WhenExists() {
-        // GIVEN
         when(postVoteRepository.findById(1L)).thenReturn(Optional.of(testPostVote));
 
-        // WHEN
         PostVote result = postVoteService.getById(1L);
 
-        // THEN
         assertNotNull(result);
         assertEquals(1L, result.getId());
     }
 
     @Test
     void update_ShouldUpdateFieldsAndSave() {
-        // GIVEN
         when(postVoteRepository.findById(1L)).thenReturn(Optional.of(testPostVote));
         when(postVoteRepository.save(any(PostVote.class))).thenAnswer(i -> i.getArguments()[0]);
 
@@ -118,20 +107,16 @@ class PostVoteServiceTest {
         updatedInfo.setUser(testUser);
         updatedInfo.setPost(testPost);
 
-        // WHEN
         PostVote result = postVoteService.update(1L, updatedInfo);
 
-        // THEN
         assertNotNull(result);
         verify(postVoteRepository).save(testPostVote);
     }
 
     @Test
     void delete_ShouldCallRepository() {
-        // WHEN
         postVoteService.delete(1L);
 
-        // THEN
         verify(postVoteRepository, times(1)).deleteById(1L);
     }
 }

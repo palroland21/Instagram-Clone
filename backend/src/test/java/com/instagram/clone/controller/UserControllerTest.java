@@ -21,23 +21,22 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import org.springframework.security.test.context.support.WithMockUser;
 
 
-@WebMvcTest(UserController.class) // Testăm doar stratul de Web pentru UserController
+@WebMvcTest(UserController.class)
 @Import(SecurityConfig.class)
 class UserControllerTest {
 
     @Autowired
-    private MockMvc mockMvc; // Instrumentul care "bate la ușa" API-ului
+    private MockMvc mockMvc;
 
     @MockBean
-    private UserService userService; // Creăm o dublură pentru Service
+    private UserService userService;
 
     @Autowired
-    private ObjectMapper objectMapper; // Transformă obiectele Java în JSON și invers
+    private ObjectMapper objectMapper;
 
     @Test
     @WithMockUser
     void createUser_ShouldReturnCreatedStatus() throws Exception {
-        // GIVEN - Datele tale din Testare.txt
         User userRequest = new User();
         userRequest.setUsername("ion_popescu");
         userRequest.setEmail("ion.popescu@email.com");
@@ -47,12 +46,10 @@ class UserControllerTest {
         savedUser.setId(1L);
         savedUser.setUsername("ion_popescu");
 
-        // Spunem Service-ului să returneze user-ul salvat când e apelat de Controller
         when(userService.create(any(User.class))).thenReturn(savedUser);
 
-        // WHEN & THEN - Simulăm POST http://localhost:9090/users
         mockMvc.perform(post("/users")
-                        .with(csrf()) // Aceasta este "insigna" care îi permite accesul
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(userRequest)))
                 .andExpect(status().isOk());
