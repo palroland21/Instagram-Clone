@@ -9,6 +9,7 @@ import com.instagram.clone.repository.TagRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,16 +51,25 @@ public class PostService {
     public Post update(Long id, Post updatedPost) {
         Post existing = getById(id);
         existing.setUser(updatedPost.getUser());
-        existing.setPictures(updatedPost.getPictures());
+        //existing.setPictures(updatedPost.getPictures());
         existing.setPictureUrl(updatedPost.getPictureUrl());
         existing.setLocation(updatedPost.getLocation());
         existing.setCaption(updatedPost.getCaption());
         existing.setTitle(updatedPost.getTitle());
         existing.setStatus(updatedPost.getStatus());
-        existing.setTags(updatedPost.getTags());
+        if (updatedPost.getTags() != null) {
+            existing.setTags(updatedPost.getTags());
+        }
 
-        if(updatedPost.getPictures() != null) {
-            for(Picture picture : updatedPost.getPictures()) {
+        if (existing.getPictures() == null) {
+            existing.setPictures(new ArrayList<>());
+        } else {
+            existing.getPictures().clear();
+        }
+
+        if (updatedPost.getPictures() != null) {
+            for (Picture picture : updatedPost.getPictures()) {
+                picture.setId(null);
                 picture.setPost(existing);
                 existing.getPictures().add(picture);
             }
