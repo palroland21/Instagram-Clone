@@ -42,4 +42,17 @@ public class User {
 
     @Column(nullable = false)
     private Double score = 0.0;
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (role == null) {
+            role = Role.USER;
+        }
+        if (score == null) {
+            score = 0.0;
+        }
+    }
 }
