@@ -28,6 +28,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/comments/**").permitAll()
+                        .requestMatchers("/posts/**").permitAll()
+                        .requestMatchers("/comment-votes/**").permitAll()
+                        .requestMatchers("/tags/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

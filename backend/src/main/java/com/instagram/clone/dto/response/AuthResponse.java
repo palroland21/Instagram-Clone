@@ -1,4 +1,4 @@
-package com.instagram.clone.dto;
+package com.instagram.clone.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

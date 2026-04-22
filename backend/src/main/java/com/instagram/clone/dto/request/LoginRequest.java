@@ -1,4 +1,4 @@
-package com.instagram.clone.dto;
+package com.instagram.clone.dto.request;
 
 import lombok.Data;
 

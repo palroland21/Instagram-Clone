@@ -1,7 +1,7 @@
 package com.instagram.clone.controller;
 
-import com.instagram.clone.dto.LoginRequest;
-import com.instagram.clone.dto.RegisterRequest;
+import com.instagram.clone.dto.request.LoginRequest;
+import com.instagram.clone.dto.request.RegisterRequest;
 import com.instagram.clone.service.JwtService;
 import com.instagram.clone.model.User;
 import com.instagram.clone.service.UserService;
