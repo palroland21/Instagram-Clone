@@ -3,6 +3,7 @@ package com.instagram.clone.repository;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.PostVote;
 import com.instagram.clone.model.User;
+import com.instagram.clone.model.enums.VoteType;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +15,6 @@ public interface PostVoteRepository extends CrudRepository<PostVote, Long> {
     Optional<PostVote> findByUserAndPost(User user, Post post);
     boolean existsByUserAndPost(User user, Post post);
     List<PostVote> findByPost(Post post);
+    Optional<PostVote> findByUserIdAndPostId(Long userId, Long postId);
+    long countByPostIdAndVoteType(Long postId, VoteType voteType);
 }

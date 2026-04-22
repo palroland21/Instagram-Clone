@@ -43,7 +43,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile }) {
         navigate('/')
     }
 
-    // ── MOBILE bottom bar ─────────────────────────────────────────────────────
+    // MOBILE bottom bar
     if (isMobile) {
         const mobileItems = [
             { id: 'home', path: '/home', icon: <HomeIcon filled={activeItem === 'home'} /> },
@@ -91,7 +91,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile }) {
         )
     }
 
-    // ── DESKTOP left sidebar ──────────────────────────────────────────────────
+    // DESKTOP left sidebar
     return (
         <div style={{
             position: 'fixed', left: 0, top: 0, bottom: 0, width: 244,
@@ -100,14 +100,32 @@ function Sidebar({ activeItem, setActiveItem, isMobile }) {
             zIndex: 100,
         }}>
             {/* Logo */}
-            <div style={{ padding: '25px 12px 16px' }}>
-                <span style={{
-                    fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 'bold',
-                    color: 'white', letterSpacing: '-0.5px', display: 'block',
-                }}>
+            <button
+                onClick={() => {
+                    setActiveItem('home')
+                    navigate('/home')
+                }}
+                style={{
+                    padding: '25px 12px 16px',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                }}
+            >
+                <span
+                    style={{
+                        fontFamily: 'Georgia, serif',
+                        fontSize: 22,
+                        fontWeight: 'bold',
+                        color: 'white',
+                        letterSpacing: '-0.5px',
+                        display: 'block',
+                    }}
+                >
                     Instagram
                 </span>
-            </div>
+            </button>
 
             {/* Nav Items */}
             <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>

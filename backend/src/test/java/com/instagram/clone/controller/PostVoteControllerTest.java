@@ -1,10 +1,6 @@
 package com.instagram.clone.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.instagram.clone.config.SecurityConfig;
-import com.instagram.clone.dto.request.PostVoteRequest;
-import com.instagram.clone.dto.response.PostVoteResponse;
-import com.instagram.clone.model.enums.VoteType;
 import com.instagram.clone.service.PostVoteService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,13 +8,15 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.any;
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -33,33 +31,43 @@ class PostVoteControllerTest {
     @MockBean
     private PostVoteService postVoteService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Test
+    @WithMockUser
+    void toggleLike_ShouldReturnOk() throws Exception {
+        Map<String, Object> response = new HashMap<>();
+        response.put("liked", true);
+        response.put("likeCount", 1L);
+
+        when(postVoteService.toggleLike(1L, 10L)).thenReturn(response);
+
+        mockMvc.perform(post("/post-votes/toggle-like")
+                        .with(csrf())
+                        .param("userId", "1")
+                        .param("postId", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.liked").value(true))
+                .andExpect(jsonPath("$.likeCount").value(1));
+    }
 
     @Test
     @WithMockUser
-    void create_ShouldReturnOk() throws Exception {
-        PostVoteRequest voteRequest = new PostVoteRequest();
-        voteRequest.setUserId(1L);
-        voteRequest.setPostId(10L);
-        voteRequest.setVoteType(VoteType.LIKE);
+    void getLikeCount_ShouldReturnOk() throws Exception {
+        when(postVoteService.getLikeCount(10L)).thenReturn(5L);
 
-        PostVoteResponse savedVote = new PostVoteResponse();
-        savedVote.setId(500L);
-        savedVote.setUserId(1L);
-        savedVote.setPostId(10L);
-        savedVote.setVoteType(VoteType.LIKE);
-
-        when(postVoteService.create(any(PostVoteRequest.class))).thenReturn(savedVote);
-
-        mockMvc.perform(post("/post-votes")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(voteRequest)))
+        mockMvc.perform(get("/post-votes/count/10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(500))
-                .andExpect(jsonPath("$.userId").value(1))
-                .andExpect(jsonPath("$.postId").value(10))
-                .andExpect(jsonPath("$.voteType").value("LIKE"));
+                .andExpect(content().string("5"));
+    }
+
+    @Test
+    @WithMockUser
+    void isLikedByUser_ShouldReturnOk() throws Exception {
+        when(postVoteService.isLikedByUser(1L, 10L)).thenReturn(true);
+
+        mockMvc.perform(get("/post-votes/liked")
+                        .param("userId", "1")
+                        .param("postId", "10"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("true"));
     }
 }

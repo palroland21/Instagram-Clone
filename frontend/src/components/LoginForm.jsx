@@ -41,6 +41,9 @@ function LoginForm({ setMessage, setError, goToRegister }) {
             }
 
             localStorage.setItem('token', data.token)
+            localStorage.setItem('userId', data.userId)
+            localStorage.setItem('username', data.username)
+
             setMessage('Login successful!')
 
             setLoginData({
@@ -91,8 +94,8 @@ function LoginForm({ setMessage, setError, goToRegister }) {
                     role="button"
                     tabIndex={0}
                 >
-          Register
-        </span>
+                    Register
+                </span>
             </p>
         </form>
     )

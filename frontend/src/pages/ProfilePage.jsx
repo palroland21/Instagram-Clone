@@ -263,7 +263,7 @@ function ProfilePage() {
                             flexShrink: 0,
                         }}
                     />
-                    <div style={{ display: 'flex', gap: 32, flex: 1, justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', gap: 56, flex: 1, justifyContent: 'center' }}>
                         {[
                             { label: 'posts', value: posts.length },
                             { label: 'followers', value: 0 },
