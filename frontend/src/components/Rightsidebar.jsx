@@ -21,7 +21,9 @@ function RightSidebar() {
                 const myUsername = payload.sub // JWT subject = username
 
                 const me = users.find(u => u.username === myUsername)
-                const others = users.filter(u => u.username !== myUsername).slice(0, 5)
+                const others = users.filter(u => u.username !== myUsername)
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, 5)
 
                 setCurrentUser(me || null)
                 setSuggestions(others)

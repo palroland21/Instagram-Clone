@@ -1,53 +1,68 @@
 import { useNavigate } from 'react-router-dom'
-import { HomeIcon, SearchIcon, ExploreIcon, ReelsIcon, MessagesIcon, HeartIcon, PlusIcon, MoreIcon } from './icons'
-import { CURRENT_USER } from '../mockData'
+import {
+    HomeIcon,
+    SearchIcon,
+    ExploreIcon,
+    MessagesIcon,
+    HeartIcon,
+    PlusIcon,
+    LogoutIcon,
+} from './Icons'
 
 function Sidebar({ activeItem, setActiveItem, isMobile }) {
     const navigate = useNavigate()
 
     const navItems = [
-        { id: 'home', label: 'Home', icon: <HomeIcon filled={activeItem === 'home'} /> },
+        { id: 'home', label: 'Home', path: '/home', icon: <HomeIcon filled={activeItem === 'home'} /> },
         { id: 'search', label: 'Search', icon: <SearchIcon /> },
         { id: 'explore', label: 'Explore', icon: <ExploreIcon /> },
-        { id: 'reels', label: 'Reels', icon: <ReelsIcon /> },
         { id: 'messages', label: 'Messages', icon: <MessagesIcon /> },
         { id: 'notifications', label: 'Notifications', icon: <HeartIcon /> },
         { id: 'create', label: 'Create', icon: <PlusIcon /> },
         {
-            id: 'profile', label: 'Profile', icon: (
+            id: 'profile',
+            label: 'Profile',
+            path: '/profile',
+            icon: (
                 <img
-                    src={`https://i.pravatar.cc/150?img=1`}
+                    src="https://i.pravatar.cc/150?img=1"
                     alt="profile"
                     style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
                 />
-            )
+            ),
         },
     ]
+
+    const handleItemClick = (item) => {
+        setActiveItem(item.id)
+        if (item.path) navigate(item.path)
+    }
 
     const handleLogout = () => {
         localStorage.removeItem('token')
         navigate('/')
     }
 
-    // ── MOBILE: bottom bar with icons only ───────────────────────────────────
+    // ── MOBILE bottom bar ─────────────────────────────────────────────────────
     if (isMobile) {
-        // Show only 5 key items on mobile bottom bar
         const mobileItems = [
-            { id: 'home', icon: <HomeIcon filled={activeItem === 'home'} /> },
+            { id: 'home', path: '/home', icon: <HomeIcon filled={activeItem === 'home'} /> },
             { id: 'search', icon: <SearchIcon /> },
-            { id: 'reels', icon: <ReelsIcon /> },
+            { id: 'explore', icon: <ExploreIcon /> },
             { id: 'notifications', icon: <HeartIcon filled={false} /> },
             {
-                id: 'profile', icon: (
+                id: 'profile',
+                path: '/profile',
+                icon: (
                     <img
-                        src={`https://i.pravatar.cc/150?img=1`}
+                        src="https://i.pravatar.cc/150?img=1"
                         alt="profile"
                         style={{
                             width: 26, height: 26, borderRadius: '50%', objectFit: 'cover',
                             border: activeItem === 'profile' ? '2px solid white' : '2px solid transparent',
                         }}
                     />
-                )
+                ),
             },
         ]
 
@@ -61,7 +76,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile }) {
                 {mobileItems.map(item => (
                     <button
                         key={item.id}
-                        onClick={() => setActiveItem(item.id)}
+                        onClick={() => handleItemClick(item)}
                         style={{
                             background: 'none', border: 'none', cursor: 'pointer',
                             padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -76,7 +91,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile }) {
         )
     }
 
-    // ── DESKTOP: left sidebar ─────────────────────────────────────────────────
+    // ── DESKTOP left sidebar ──────────────────────────────────────────────────
     return (
         <div style={{
             position: 'fixed', left: 0, top: 0, bottom: 0, width: 244,
@@ -99,7 +114,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile }) {
                 {navItems.map(item => (
                     <button
                         key={item.id}
-                        onClick={() => setActiveItem(item.id)}
+                        onClick={() => handleItemClick(item)}
                         style={{
                             display: 'flex', alignItems: 'center', gap: 16,
                             padding: '12px 12px', borderRadius: 8, border: 'none',
@@ -116,7 +131,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile }) {
                 ))}
             </nav>
 
-            {/* More / Logout */}
+            {/* Logout */}
             <button
                 onClick={handleLogout}
                 style={{
@@ -129,8 +144,8 @@ function Sidebar({ activeItem, setActiveItem, isMobile }) {
                 onMouseEnter={e => e.currentTarget.style.background = '#1a1a1a'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-                <MoreIcon />
-                <span>More</span>
+                <LogoutIcon />
+                <span>Log out</span>
             </button>
         </div>
     )
