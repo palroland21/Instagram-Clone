@@ -1,5 +1,7 @@
 package com.instagram.clone.service;
 
+import com.instagram.clone.dto.request.PictureRequest;
+import com.instagram.clone.dto.response.PictureResponse;
 import com.instagram.clone.model.Picture;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.repository.PictureRepository;
@@ -34,17 +36,23 @@ class PictureServiceTest {
         Post mockPost = new Post();
         mockPost.setId(1L);
 
-        Picture picture = new Picture();
-        picture.setPictureURL("https://cdn.instagram.com/p123.jpg");
-        picture.setPost(mockPost);
+        PictureRequest pictureRequest = new PictureRequest();
+        pictureRequest.setUrl("https://cdn.instagram.com/p123.jpg");
+        pictureRequest.setPostId(1L);
+
+        Picture savedPicture = new Picture();
+        savedPicture.setId(1L);
+        savedPicture.setPictureURL("https://cdn.instagram.com/p123.jpg");
+        savedPicture.setPost(mockPost);
 
         when(postRepository.findById(1L)).thenReturn(Optional.of(mockPost));
-        when(pictureRepository.save(any(Picture.class))).thenReturn(picture);
+        when(pictureRepository.save(any(Picture.class))).thenReturn(savedPicture);
 
-        Picture saved = pictureService.create(picture);
+        PictureResponse result = pictureService.create(pictureRequest);
 
-        assertNotNull(saved);
-        assertEquals("https://cdn.instagram.com/p123.jpg", saved.getPictureURL());
-        assertEquals(1L, saved.getPost().getId());
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals("https://cdn.instagram.com/p123.jpg", result.getUrl());
+        assertEquals(1L, result.getPostId());
     }
 }
