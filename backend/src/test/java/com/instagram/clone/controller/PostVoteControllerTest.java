@@ -2,9 +2,8 @@ package com.instagram.clone.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.instagram.clone.config.SecurityConfig;
-import com.instagram.clone.model.Post;
-import com.instagram.clone.model.PostVote;
-import com.instagram.clone.model.User;
+import com.instagram.clone.dto.request.PostVoteRequest;
+import com.instagram.clone.dto.response.PostVoteResponse;
 import com.instagram.clone.model.enums.VoteType;
 import com.instagram.clone.service.PostVoteService;
 import org.junit.jupiter.api.Test;
@@ -40,22 +39,18 @@ class PostVoteControllerTest {
     @Test
     @WithMockUser
     void create_ShouldReturnOk() throws Exception {
-        User user = new User();
-        user.setId(1L);
-
-        Post post = new Post();
-        post.setId(10L);
-
-        PostVote voteRequest = new PostVote();
-        voteRequest.setUser(user);
-        voteRequest.setPost(post);
+        PostVoteRequest voteRequest = new PostVoteRequest();
+        voteRequest.setUserId(1L);
+        voteRequest.setPostId(10L);
         voteRequest.setVoteType(VoteType.LIKE);
 
-        PostVote savedVote = new PostVote();
+        PostVoteResponse savedVote = new PostVoteResponse();
         savedVote.setId(500L);
+        savedVote.setUserId(1L);
+        savedVote.setPostId(10L);
         savedVote.setVoteType(VoteType.LIKE);
 
-        when(postVoteService.create(any(PostVote.class))).thenReturn(savedVote);
+        when(postVoteService.create(any(PostVoteRequest.class))).thenReturn(savedVote);
 
         mockMvc.perform(post("/post-votes")
                         .with(csrf())
@@ -63,6 +58,8 @@ class PostVoteControllerTest {
                         .content(objectMapper.writeValueAsString(voteRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(500))
+                .andExpect(jsonPath("$.userId").value(1))
+                .andExpect(jsonPath("$.postId").value(10))
                 .andExpect(jsonPath("$.voteType").value("LIKE"));
     }
 }
