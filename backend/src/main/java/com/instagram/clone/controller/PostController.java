@@ -28,7 +28,10 @@ public class PostController {
     }
 
     @GetMapping
-    public List<PostResponse> getAll() {
+    public List<PostResponse> getAll(@RequestParam(required = false) Long currentUserId) {
+        if (currentUserId != null) {
+            return postService.getAll(currentUserId);
+        }
         return postService.getAll();
     }
 

@@ -19,4 +19,7 @@ public class PostResponse {
     private PostStatus status;
     private List<Long> tagIds;
     private List<String> tagNames;
+    private Long likeCount;
+    private Boolean likedByCurrentUser;
+    private List<CommentResponse> comments;
 }

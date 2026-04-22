@@ -32,6 +32,11 @@ public class CommentController {
         return commentService.getAll();
     }
 
+    @GetMapping("/post/{postId}")
+    public List<CommentResponse> getByPostId(@PathVariable Long postId) {
+        return commentService.getByPostId(postId);
+    }
+
     @PutMapping("/{id}")
     public CommentResponse update(@PathVariable Long id, @RequestBody CommentRequest request) {
         return commentService.update(id, request);
