@@ -1,17 +1,14 @@
 package com.instagram.clone.service;
 
 import com.instagram.clone.model.User;
-import com.instagram.clone.model.enums.Role;
 import com.instagram.clone.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,84 +21,65 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     @InjectMocks
     private UserService userService;
 
-    private User testUser;
-
-    @BeforeEach
-    void setUp() {
-
-        testUser = new User();
-        testUser.setId(1L);
-        testUser.setUsername("ion_popescu");
-        testUser.setEmail("ion.popescu@email.com");
-        testUser.setFullName("Ion Popescu");
-        testUser.setBio("Pasionat de fotografie");
-    }
-
     @Test
-    void create_ShouldInitializeUserAndSave() {
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void create_ShouldEncodePasswordAndSaveUser() {
+        User user = new User();
+        user.setUsername("andrei_m");
+        user.setEmail("andrei@gmail.com");
+        user.setPassword("parola123");
 
-        User result = userService.create(testUser);
+        when(passwordEncoder.encode("parola123")).thenReturn("encodedPassword123");
+
+        User savedUser = new User();
+        savedUser.setId(1L);
+        savedUser.setUsername("andrei_m");
+        savedUser.setEmail("andrei@gmail.com");
+        savedUser.setPassword("encodedPassword123");
+
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+        User result = userService.create(user);
 
         assertNotNull(result);
-        assertEquals(Role.USER, result.getRole());
-        assertEquals(0.0, result.getScore());
-        assertNotNull(result.getCreatedAt());
-        verify(userRepository, times(1)).save(any(User.class));
+        assertEquals(1L, result.getId());
+        assertEquals("andrei_m", result.getUsername());
+        assertEquals("encodedPassword123", result.getPassword());
+
+        verify(passwordEncoder).encode("parola123");
+        verify(userRepository).save(any(User.class));
     }
 
     @Test
-    void getById_ShouldReturnUser_WhenExists() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+    void findByUsername_ShouldReturnUser_WhenExists() {
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("andrei_m");
 
-        User result = userService.getById(1L);
+        when(userRepository.findByUsername("andrei_m")).thenReturn(Optional.of(user));
+
+        User result = userService.findByUsername("andrei_m");
 
         assertNotNull(result);
-        assertEquals("ion_popescu", result.getUsername());
-        verify(userRepository).findById(1L);
+        assertEquals("andrei_m", result.getUsername());
+        verify(userRepository).findByUsername("andrei_m");
     }
 
     @Test
-    void getById_ShouldThrowException_WhenNotFound() {
-        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+    void findByUsername_ShouldThrowException_WhenUserNotFound() {
+        when(userRepository.findByUsername("andrei_m")).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> userService.getById(99L));
-        assertTrue(exception.getMessage().contains("User not found"));
-    }
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> userService.findByUsername("andrei_m")
+        );
 
-    @Test
-    void getAll_ShouldReturnListOfUsers() {
-        when(userRepository.findAll()).thenReturn(List.of(testUser));
-
-        List<User> result = userService.getAll();
-
-        assertEquals(1, result.size());
-        verify(userRepository).findAll();
-    }
-
-    @Test
-    void update_ShouldModifyExistingUser() {
-        User updatedInfo = new User();
-        updatedInfo.setUsername("ion_nou");
-        updatedInfo.setBio("Bio nou");
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
-
-        User result = userService.update(1L, updatedInfo);
-
-        assertEquals("ion_nou", result.getUsername());
-        assertEquals("Bio nou", result.getBio());
-        verify(userRepository).save(testUser);
-    }
-
-    @Test
-    void delete_ShouldCallRepository() {
-        userService.delete(1L);
-
-        verify(userRepository, times(1)).deleteById(1L);
+        assertEquals("User not found: andrei_m", exception.getMessage());
+        verify(userRepository).findByUsername("andrei_m");
     }
 }

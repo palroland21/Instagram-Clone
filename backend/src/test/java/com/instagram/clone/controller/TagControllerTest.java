@@ -2,7 +2,8 @@ package com.instagram.clone.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.instagram.clone.config.SecurityConfig;
-import com.instagram.clone.model.Tag;
+import com.instagram.clone.dto.request.TagRequest;
+import com.instagram.clone.dto.response.TagResponse;
 import com.instagram.clone.service.TagService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -26,22 +26,33 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class TagControllerTest {
 
-    @Autowired private MockMvc mockMvc;
-    @MockBean private TagService tagService;
-    @Autowired private ObjectMapper objectMapper;
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private TagService tagService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     @WithMockUser
     void create_ShouldReturnTag() throws Exception {
-        Tag tag = new Tag();
-        tag.setName("#nature");
+        TagRequest tagRequest = new TagRequest();
+        tagRequest.setName("#nature");
 
-        when(tagService.create(any(Tag.class))).thenReturn(tag);
+        TagResponse tagResponse = new TagResponse();
+        tagResponse.setId(1L);
+        tagResponse.setName("#nature");
 
-        mockMvc.perform(post("/tags").with(csrf())
+        when(tagService.create(any(TagRequest.class))).thenReturn(tagResponse);
+
+        mockMvc.perform(post("/tags")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(tag)))
+                        .content(objectMapper.writeValueAsString(tagRequest)))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("#nature"));
     }
 }

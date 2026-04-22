@@ -1,5 +1,7 @@
 package com.instagram.clone.service;
 
+import com.instagram.clone.dto.request.TagRequest;
+import com.instagram.clone.dto.response.TagResponse;
 import com.instagram.clone.model.Tag;
 import com.instagram.clone.repository.TagRepository;
 import org.junit.jupiter.api.Test;
@@ -24,14 +26,19 @@ class TagServiceTest {
 
     @Test
     void create_ShouldReturnSavedTag() {
-        Tag tag = new Tag();
-        tag.setName("#spring_boot");
+        TagRequest tagRequest = new TagRequest();
+        tagRequest.setName("#spring_boot");
 
-        when(tagRepository.save(any(Tag.class))).thenReturn(tag);
+        Tag savedTag = new Tag();
+        savedTag.setId(1L);
+        savedTag.setName("#spring_boot");
 
-        Tag saved = tagService.create(tag);
+        when(tagRepository.save(any(Tag.class))).thenReturn(savedTag);
 
-        assertNotNull(saved, "Tag-ul salvat nu ar trebui să fie null");
-        assertEquals("#spring_boot", saved.getName());
+        TagResponse result = tagService.create(tagRequest);
+
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        assertEquals("#spring_boot", result.getName());
     }
 }

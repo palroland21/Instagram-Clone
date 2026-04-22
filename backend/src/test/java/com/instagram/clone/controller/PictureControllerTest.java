@@ -40,7 +40,7 @@ class PictureControllerTest {
         mockMvc.perform(get("/pictures/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.pictureURL").value("http://aws.s3/my_photo.jpg"))
+                .andExpect(jsonPath("$.url").value("http://aws.s3/my_photo.jpg"))
                 .andExpect(jsonPath("$.postId").value(10));
     }
 }
