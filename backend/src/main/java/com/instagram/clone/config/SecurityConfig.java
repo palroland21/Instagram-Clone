@@ -34,6 +34,7 @@ public class SecurityConfig {
                         .requestMatchers("/posts/**").permitAll()
                         .requestMatchers("/comment-votes/**").permitAll()
                         .requestMatchers("/tags/**").permitAll()
+                        .requestMatchers("/users/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
