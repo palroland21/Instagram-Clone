@@ -28,6 +28,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/pictures/**").permitAll()
+                        .requestMatchers("/post-votes/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

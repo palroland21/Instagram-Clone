@@ -1,9 +1,8 @@
 package com.instagram.clone.controller;
 
-import com.instagram.clone.model.Post;
-import com.instagram.clone.model.PostVote;
+import com.instagram.clone.dto.request.PostVoteRequest;
+import com.instagram.clone.dto.response.PostVoteResponse;
 import com.instagram.clone.service.PostVoteService;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,22 +18,22 @@ public class PostVoteController {
     }
 
     @PostMapping
-    public PostVote create(@RequestBody PostVote postVote) {
-        return postVoteService.create(postVote);
+    public PostVoteResponse create(@RequestBody PostVoteRequest postVoteRequest) {
+        return postVoteService.create(postVoteRequest);
     }
 
     @GetMapping
-    public List<PostVote> getAll() {
+    public List<PostVoteResponse> getAll() {
         return postVoteService.getAll();
     }
 
     @GetMapping("/{id}")
-    public PostVote getById(@PathVariable Long id) {
+    public PostVoteResponse getById(@PathVariable Long id) {
         return postVoteService.getById(id);
     }
 
     @PutMapping("/{id}")
-    public PostVote update(@PathVariable Long id, @RequestBody PostVote updatedPostVote) {
+    public PostVoteResponse update(@PathVariable Long id, @RequestBody PostVoteRequest updatedPostVote) {
         return postVoteService.update(id, updatedPostVote);
     }
 

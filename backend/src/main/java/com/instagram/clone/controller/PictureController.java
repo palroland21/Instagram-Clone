@@ -1,6 +1,7 @@
 package com.instagram.clone.controller;
 
-import com.instagram.clone.model.Picture;
+import com.instagram.clone.dto.request.PictureRequest;
+import com.instagram.clone.dto.response.PictureResponse;
 import com.instagram.clone.service.PictureService;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,23 +18,23 @@ public class PictureController {
     }
 
     @PostMapping
-    public Picture create(@RequestBody Picture picture) {
-        return pictureService.create(picture);
+    public PictureResponse create(@RequestBody PictureRequest pictureRequest) {
+        return pictureService.create(pictureRequest);
     }
 
     @GetMapping("/{id}")
-    public Picture getById(@PathVariable Long id) {
+    public PictureResponse getById(@PathVariable Long id) {
         return pictureService.getById(id);
     }
 
     @GetMapping
-    public List<Picture> getAll() {
+    public List<PictureResponse> getAll() {
         return pictureService.getAll();
     }
 
     @PutMapping("/{id}")
-    public Picture update(@PathVariable Long id, @RequestBody Picture updatedPicture) {
-        return pictureService.update(id, updatedPicture);
+    public PictureResponse update(@PathVariable Long id, @RequestBody PictureRequest pictureRequest) {
+        return pictureService.update(id, pictureRequest);
     }
 
     @DeleteMapping("/{id}")

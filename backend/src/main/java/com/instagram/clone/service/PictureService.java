@@ -1,5 +1,7 @@
 package com.instagram.clone.service;
 
+import com.instagram.clone.dto.request.PictureRequest;
+import com.instagram.clone.dto.response.PictureResponse;
 import com.instagram.clone.model.Picture;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.repository.PictureRepository;
@@ -19,30 +21,60 @@ public class PictureService {
         this.postRepository = postRepository;
     }
 
-    public Picture create(Picture picture) {
-        Post post = postRepository.findById(picture.getPost().getId())
-                .orElseThrow(() -> new RuntimeException("Post not found with id: " + picture.getPost().getId()));
+    public PictureResponse create(PictureRequest pictureRequest) {
+        Post post = postRepository.findById(pictureRequest.getPostId())
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + pictureRequest.getPostId()));
+
+        Picture picture = new Picture();
+        picture.setPictureURL(pictureRequest.getUrl());
         picture.setPost(post);
-        return pictureRepository.save(picture);
+
+        Picture savedPicture = pictureRepository.save(picture);
+        return mapToResponse(savedPicture);
     }
 
-    public Picture getById(Long id) {
-        return pictureRepository.findById(id)
+    public PictureResponse getById(Long id) {
+        Picture picture = pictureRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Picture not found with id: " + id));
+
+        return mapToResponse(picture);
     }
 
-    public List<Picture> getAll() {
-        return (List<Picture>) pictureRepository.findAll();
-    }
+    public List<PictureResponse> getAll() {
+        List<PictureResponse> pictures = new java.util.ArrayList<>();
 
-    public Picture update(Long id, Picture updatedPicture) {
-        Picture existing = getById(id);
-        existing.setPictureURL(updatedPicture.getPictureURL());
-        existing.setPost(updatedPicture.getPost());
-        return pictureRepository.save(existing);
+        for (Picture picture : pictureRepository.findAll()) {
+            pictures.add(mapToResponse(picture));
+        }
+
+        return pictures;
+    }
+    public PictureResponse update(Long id, PictureRequest pictureRequest) {
+        Picture existing = pictureRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Picture not found with id: " + id));
+
+        Post post = postRepository.findById(pictureRequest.getPostId())
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + pictureRequest.getPostId()));
+
+        existing.setPictureURL(pictureRequest.getUrl());
+        existing.setPost(post);
+
+        Picture updatedPicture = pictureRepository.save(existing);
+        return mapToResponse(updatedPicture);
     }
 
     public void delete(Long id) {
-        pictureRepository.deleteById(id);
+        Picture picture = pictureRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Picture not found with id: " + id));
+
+        pictureRepository.delete(picture);
+    }
+
+    private PictureResponse mapToResponse(Picture picture) {
+        return new PictureResponse(
+                picture.getId(),
+                picture.getPictureURL(),
+                picture.getPost() != null ? picture.getPost().getId() : null
+        );
     }
 }
