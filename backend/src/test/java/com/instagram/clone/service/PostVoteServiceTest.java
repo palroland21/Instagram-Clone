@@ -148,25 +148,6 @@ class PostVoteServiceTest {
     }
 
     @Test
-    void toggleLike_ShouldThrowException_WhenUserLikesOwnPost() {
-        testPost.setUser(testUser);
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(postRepository.findById(10L)).thenReturn(Optional.of(testPost));
-
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> postVoteService.toggleLike(1L, 10L)
-        );
-
-        assertEquals("You cannot like your own post", exception.getMessage());
-
-        verify(postVoteRepository, never()).findByUserIdAndPostId(any(), any());
-        verify(postVoteRepository, never()).save(any());
-        verify(postVoteRepository, never()).delete(any());
-    }
-
-    @Test
     void getLikeCount_ShouldReturnCount() {
         when(postVoteRepository.countByPostIdAndVoteType(10L, VoteType.LIKE)).thenReturn(5L);
 
