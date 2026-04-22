@@ -1,6 +1,7 @@
 package com.instagram.clone.controller;
 
-import com.instagram.clone.model.CommentVote;
+import com.instagram.clone.dto.request.CommentVoteRequest;
+import com.instagram.clone.dto.response.CommentVoteResponse;
 import com.instagram.clone.service.CommentVoteService;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,23 +18,23 @@ public class CommentVoteController {
     }
 
     @PostMapping
-    public CommentVote create(@RequestBody CommentVote commentVote) {
-        return commentVoteService.create(commentVote);
+    public CommentVoteResponse create(@RequestBody CommentVoteRequest request) {
+        return commentVoteService.create(request);
     }
 
     @GetMapping("/{id}")
-    public CommentVote getById(@PathVariable Long id) {
+    public CommentVoteResponse getById(@PathVariable Long id) {
         return commentVoteService.getById(id);
     }
 
     @GetMapping
-    public List<CommentVote> getAll() {
+    public List<CommentVoteResponse> getAll() {
         return commentVoteService.getAll();
     }
 
     @PutMapping("/{id}")
-    public CommentVote update(@PathVariable Long id, @RequestBody CommentVote updatedCommentVote) {
-        return commentVoteService.update(id, updatedCommentVote);
+    public CommentVoteResponse update(@PathVariable Long id, @RequestBody CommentVoteRequest request) {
+        return commentVoteService.update(id, request);
     }
 
     @DeleteMapping("/{id}")

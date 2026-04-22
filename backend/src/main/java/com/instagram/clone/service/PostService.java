@@ -1,85 +1,146 @@
 package com.instagram.clone.service;
 
-import com.instagram.clone.model.Picture;
+import com.instagram.clone.dto.request.PostRequest;
+import com.instagram.clone.dto.response.PostResponse;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.Tag;
+import com.instagram.clone.model.User;
 import com.instagram.clone.model.enums.PostStatus;
 import com.instagram.clone.repository.PostRepository;
 import com.instagram.clone.repository.TagRepository;
+import com.instagram.clone.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class PostService {
 
     private final PostRepository postRepository;
     private final TagRepository tagRepository;
+    private final UserRepository userRepository;
 
-    public PostService(PostRepository postRepository, TagRepository tagRepository) {
+    public PostService(PostRepository postRepository,
+                       TagRepository tagRepository,
+                       UserRepository userRepository) {
         this.postRepository = postRepository;
         this.tagRepository = tagRepository;
+        this.userRepository = userRepository;
     }
 
-    public Post create(Post post) {
+    public PostResponse create(PostRequest request) {
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Post post = new Post();
+        post.setUser(user);
+        post.setPictureUrl(request.getPictureUrl());
+        post.setLocation(request.getLocation());
+        post.setCaption(request.getCaption());
+        post.setTitle(request.getTitle());
         post.setCreatedAt(LocalDateTime.now());
-        if (post.getStatus() == null) {
-            post.setStatus(PostStatus.JUST_POSTED);
-        }
-        if (post.getTags() != null) {
-            List<Tag> managedTags = post.getTags().stream()
-                    .map(tag -> tagRepository.findById(tag.getId())
-                            .orElseThrow(() -> new RuntimeException("Tag not found: " + tag.getId())))
-                    .collect(Collectors.toList());
-            post.setTags(managedTags);
-        }
-        return postRepository.save(post);
+        post.setStatus(request.getStatus() != null ? request.getStatus() : PostStatus.JUST_POSTED);
+        post.setTags(getOrCreateTags(request.getTagNames()));
+
+        Post saved = postRepository.save(post);
+        return mapToResponse(saved);
     }
 
-    public Post getById(Long id) {
-        return postRepository.findById(id)
+    public PostResponse getById(Long id) {
+        Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
+        return mapToResponse(post);
     }
 
-    public List<Post> getAll() {
-        return (List<Post>) postRepository.findAll();
+    public List<PostResponse> getAll() {
+        List<PostResponse> responses = new ArrayList<>();
+
+        for (Post post : postRepository.findAll()) {
+            responses.add(mapToResponse(post));
+        }
+
+        return responses;
     }
 
-    public Post update(Long id, Post updatedPost) {
-        Post existing = getById(id);
-        existing.setUser(updatedPost.getUser());
-        //existing.setPictures(updatedPost.getPictures());
-        existing.setPictureUrl(updatedPost.getPictureUrl());
-        existing.setLocation(updatedPost.getLocation());
-        existing.setCaption(updatedPost.getCaption());
-        existing.setTitle(updatedPost.getTitle());
-        existing.setStatus(updatedPost.getStatus());
-        if (updatedPost.getTags() != null) {
-            existing.setTags(updatedPost.getTags());
+    public PostResponse update(Long id, PostRequest request) {
+        Post existing = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
+
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        existing.setUser(user);
+        existing.setPictureUrl(request.getPictureUrl());
+        existing.setLocation(request.getLocation());
+        existing.setCaption(request.getCaption());
+        existing.setTitle(request.getTitle());
+
+        if (request.getStatus() != null) {
+            existing.setStatus(request.getStatus());
         }
 
-        if (existing.getPictures() == null) {
-            existing.setPictures(new ArrayList<>());
-        } else {
-            existing.getPictures().clear();
-        }
+        existing.setTags(getOrCreateTags(request.getTagNames()));
 
-        if (updatedPost.getPictures() != null) {
-            for (Picture picture : updatedPost.getPictures()) {
-                picture.setId(null);
-                picture.setPost(existing);
-                existing.getPictures().add(picture);
-            }
-        }
-
-
-        return postRepository.save(existing);
+        Post updated = postRepository.save(existing);
+        return mapToResponse(updated);
     }
 
     public void delete(Long id) {
         postRepository.deleteById(id);
+    }
+
+    private List<Tag> getOrCreateTags(List<String> tagNames) {
+        List<Tag> tags = new ArrayList<>();
+
+        if (tagNames != null) {
+            for (String tagName : tagNames) {
+                if (tagName == null || tagName.trim().isEmpty()) {
+                    continue;
+                }
+
+                String cleanTagName = tagName.trim().toLowerCase();
+
+                Tag tag = tagRepository.findByName(cleanTagName)
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setName(cleanTagName);
+                            return tagRepository.save(newTag);
+                        });
+
+                tags.add(tag);
+            }
+        }
+
+        return tags;
+    }
+
+    private PostResponse mapToResponse(Post post) {
+        PostResponse response = new PostResponse();
+        response.setId(post.getId());
+        response.setUserId(post.getUser().getId());
+        response.setUsername(post.getUser().getUsername());
+        response.setPictureUrl(post.getPictureUrl());
+        response.setLocation(post.getLocation());
+        response.setCaption(post.getCaption());
+        response.setTitle(post.getTitle());
+        response.setCreatedAt(post.getCreatedAt());
+        response.setStatus(post.getStatus());
+
+        List<Long> tagIds = new ArrayList<>();
+        List<String> tagNames = new ArrayList<>();
+
+        if (post.getTags() != null) {
+            for (Tag tag : post.getTags()) {
+                tagIds.add(tag.getId());
+                tagNames.add(tag.getName());
+            }
+        }
+
+        response.setTagIds(tagIds);
+        response.setTagNames(tagNames);
+
+        return response;
     }
 }

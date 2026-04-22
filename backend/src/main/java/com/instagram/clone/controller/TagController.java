@@ -1,6 +1,7 @@
 package com.instagram.clone.controller;
 
-import com.instagram.clone.model.Tag;
+import com.instagram.clone.dto.request.TagRequest;
+import com.instagram.clone.dto.response.TagResponse;
 import com.instagram.clone.service.TagService;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,23 +18,23 @@ public class TagController {
     }
 
     @PostMapping
-    public Tag create(@RequestBody Tag tag) {
-        return tagService.create(tag);
+    public TagResponse create(@RequestBody TagRequest request) {
+        return tagService.create(request);
     }
 
     @GetMapping("/{id}")
-    public Tag getById(@PathVariable Long id) {
+    public TagResponse getById(@PathVariable Long id) {
         return tagService.getById(id);
     }
 
     @GetMapping
-    public List<Tag> getAll() {
+    public List<TagResponse> getAll() {
         return tagService.getAll();
     }
 
     @PutMapping("/{id}")
-    public Tag update(@PathVariable Long id, @RequestBody Tag updatedTag) {
-        return tagService.update(id, updatedTag);
+    public TagResponse update(@PathVariable Long id, @RequestBody TagRequest request) {
+        return tagService.update(id, request);
     }
 
     @DeleteMapping("/{id}")

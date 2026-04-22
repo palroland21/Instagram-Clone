@@ -1,6 +1,7 @@
 package com.instagram.clone.controller;
 
-import com.instagram.clone.model.Post;
+import com.instagram.clone.dto.request.PostRequest;
+import com.instagram.clone.dto.response.PostResponse;
 import com.instagram.clone.service.PostService;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,23 +18,23 @@ public class PostController {
     }
 
     @PostMapping
-    public Post create(@RequestBody Post post) {
-        return postService.create(post);
+    public PostResponse create(@RequestBody PostRequest request) {
+        return postService.create(request);
     }
 
     @GetMapping("/{id}")
-    public Post getById(@PathVariable Long id) {
+    public PostResponse getById(@PathVariable Long id) {
         return postService.getById(id);
     }
 
     @GetMapping
-    public List<Post> getAll() {
+    public List<PostResponse> getAll() {
         return postService.getAll();
     }
 
     @PutMapping("/{id}")
-    public Post update(@PathVariable Long id, @RequestBody Post updatedPost) {
-        return postService.update(id, updatedPost);
+    public PostResponse update(@PathVariable Long id, @RequestBody PostRequest request) {
+        return postService.update(id, request);
     }
 
     @DeleteMapping("/{id}")

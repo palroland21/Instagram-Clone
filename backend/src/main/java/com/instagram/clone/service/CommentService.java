@@ -1,5 +1,7 @@
 package com.instagram.clone.service;
 
+import com.instagram.clone.dto.request.CommentRequest;
+import com.instagram.clone.dto.response.CommentResponse;
 import com.instagram.clone.model.Comment;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.User;
@@ -26,36 +28,73 @@ public class CommentService {
         this.postRepository = postRepository;
     }
 
-    public Comment create(Comment comment) {
-        User user = userRepository.findById(comment.getUser().getId())
+    public CommentResponse create(CommentRequest request) {
+        User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        Post post = postRepository.findById(comment.getPost().getId())
+
+        Post post = postRepository.findById(request.getPostId())
                 .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        Comment comment = new Comment();
         comment.setUser(user);
         comment.setPost(post);
-        comment.setPostedAt(LocalDateTime.now());
-        return commentRepository.save(comment);
+        comment.setText(request.getText());
+        comment.setPictureUrl(request.getPictureUrl());
+        comment.setPostedAt(request.getPostedAt() != null ? request.getPostedAt() : LocalDateTime.now());
+
+        Comment saved = commentRepository.save(comment);
+        return mapToResponse(saved);
     }
 
-    public Comment getById(Long id) {
-        return commentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Comment not found with id: " + id));
+    public CommentResponse getById(Long id) {
+        Comment comment = commentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Comment not found"));
+        return mapToResponse(comment);
     }
 
-    public List<Comment> getAll() {
-        return (List<Comment>) commentRepository.findAll();
+    public List<CommentResponse> getAll() {
+        List<CommentResponse> responses = new java.util.ArrayList<>();
+
+        for (Comment comment : commentRepository.findAll()) {
+            responses.add(mapToResponse(comment));
+        }
+
+        return responses;
     }
 
-    public Comment update(Long id, Comment updatedComment) {
-        Comment existing = getById(id);
-        existing.setUser(updatedComment.getUser());
-        existing.setPost(updatedComment.getPost());
-        existing.setText(updatedComment.getText());
-        existing.setPictureUrl(updatedComment.getPictureUrl());
-        return commentRepository.save(existing);
+    public CommentResponse update(Long id, CommentRequest request) {
+        Comment comment = commentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Comment not found"));
+
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Post post = postRepository.findById(request.getPostId())
+                .orElseThrow(() -> new RuntimeException("Post not found"));
+
+        comment.setUser(user);
+        comment.setPost(post);
+        comment.setText(request.getText());
+        comment.setPictureUrl(request.getPictureUrl());
+        comment.setPostedAt(request.getPostedAt());
+
+        Comment updated = commentRepository.save(comment);
+        return mapToResponse(updated);
     }
 
     public void delete(Long id) {
         commentRepository.deleteById(id);
+    }
+
+    private CommentResponse mapToResponse(Comment comment) {
+        CommentResponse response = new CommentResponse();
+        response.setId(comment.getId());
+        response.setUserId(comment.getUser().getId());
+        response.setUsername(comment.getUser().getUsername());
+        response.setPostId(comment.getPost().getId());
+        response.setText(comment.getText());
+        response.setPictureUrl(comment.getPictureUrl());
+        response.setPostedAt(comment.getPostedAt());
+        return response;
     }
 }
