@@ -69,7 +69,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
         { id: 'home', label: 'Home', path: '/home', icon: <HomeIcon filled={activeItem === 'home'} /> },
         { id: 'search', label: 'Search', path: '/search', icon: <SearchIcon /> },
         { id: 'messages', label: 'Messages', icon: <MessagesIcon /> },
-        { id: 'notifications', label: 'Notifications', icon: <HeartIcon /> },
+        { id: 'notifications', label: 'Notifications', path: '/notifications', icon: <HeartIcon /> },
         { id: 'create', label: 'Create', icon: <PlusIcon />, action: () => setShowCreateModal(true) },
         {
             id: 'profile',
@@ -109,7 +109,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
             { id: 'home', path: '/home', icon: <HomeIcon filled={activeItem === 'home'} /> },
             { id: 'search', path: '/search', icon: <SearchIcon /> },
             { id: 'create', icon: <PlusIcon />, action: () => setShowCreateModal(true) },
-            { id: 'notifications', icon: <HeartIcon filled={false} /> },
+            { id: 'notifications', path: '/notifications', icon: <HeartIcon filled={false} /> },
             {
                 id: 'profile',
                 path: '/profile',

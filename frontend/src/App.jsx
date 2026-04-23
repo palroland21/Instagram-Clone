@@ -3,6 +3,7 @@ import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 import ProfilePage from "./pages/ProfilePage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
+import NotificationsPage from './pages/NotificationsPage'
 
 function App() {
     return (
@@ -12,6 +13,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
         </Routes>
     )
 }
