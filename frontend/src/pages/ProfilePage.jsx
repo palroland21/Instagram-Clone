@@ -20,6 +20,12 @@ function ProfilePage() {
     })
     const [saveError, setSaveError] = useState('')
 
+    const [followModalType, setFollowModalType] = useState(null) // 'followers' sau 'following'
+    const [followUsers, setFollowUsers] = useState([]) // Lista de useri de afișat în modal
+    const [loadingFollow, setLoadingFollow] = useState(false)
+    const [followersCount, setFollowersCount] = useState(0)
+    const [followingCount, setFollowingCount] = useState(0)
+
     useEffect(() => {
         const token = localStorage.getItem('token')
         if (!token) {
@@ -58,6 +64,18 @@ function ProfilePage() {
                     profilePicture: me.profilePicture || '',
                 })
 
+
+                fetch(`${API_BASE_URL}/users/${me.id}/followers`, { headers })
+                    .then(res => res.json())
+                    .then(data => setFollowersCount(data.length || 0))
+                    .catch(() => setFollowersCount(0))
+
+                fetch(`${API_BASE_URL}/users/${me.id}/following`, { headers })
+                    .then(res => res.json())
+                    .then(data => setFollowingCount(data.length || 0))
+                    .catch(() => setFollowingCount(0))
+
+
                 const myPosts = allPosts
                     .filter(p => p.userId === me.id)
                     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -88,6 +106,31 @@ function ProfilePage() {
             email: user.email || '',
             profilePicture: user.profilePicture || '',
         })
+    }
+
+    const openFollowModal = async (type) => {
+        if (!user) return
+        setFollowModalType(type)
+        setLoadingFollow(true)
+        setFollowUsers([])
+
+        const token = localStorage.getItem('token')
+        try {
+            const res = await fetch(`${API_BASE_URL}/users/${user.id}/${type}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+
+            if (res.ok) {
+                const data = await res.json()
+                setFollowUsers(data)
+            } else {
+                console.error(`Failed to fetch ${type}`)
+            }
+        } catch (error) {
+            console.error('Error fetching follow data:', error)
+        } finally {
+            setLoadingFollow(false)
+        }
     }
 
     const closeEditModal = () => {
@@ -218,6 +261,7 @@ function ProfilePage() {
 
     return (
         <div style={{ background: '#000', minHeight: '100vh', color: 'white' }}>
+            {/* Header */}
             <div
                 style={{
                     display: 'flex',
@@ -249,6 +293,7 @@ function ProfilePage() {
                 <div style={{ width: 40 }} />
             </div>
 
+            {/* Profile Info */}
             <div style={{ maxWidth: 935, margin: '0 auto', padding: '24px 16px 0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 32, marginBottom: 16 }}>
                     <img
@@ -265,17 +310,19 @@ function ProfilePage() {
                     />
                     <div style={{ display: 'flex', gap: 56, flex: 1, justifyContent: 'center' }}>
                         {[
-                            { label: 'posts', value: posts.length },
-                            { label: 'followers', value: 0 },
-                            { label: 'following', value: 0 },
+                            { label: 'posts', value: posts.length, action: null },
+                            { label: 'followers', value: followersCount, action: () => openFollowModal('followers') },
+                            { label: 'following', value: followingCount, action: () => openFollowModal('following') },
                         ].map(s => (
                             <div
                                 key={s.label}
+                                onClick={s.action}
                                 style={{
                                     display: 'flex',
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     gap: 2,
+                                    cursor: s.action ? 'pointer' : 'default'
                                 }}
                             >
                                 <span style={{ fontSize: 17, fontWeight: 700 }}>{s.value}</span>
@@ -326,6 +373,7 @@ function ProfilePage() {
                     Edit profile
                 </button>
 
+                {/* Posts Grid */}
                 <div style={{ borderTop: '1px solid #262626', paddingTop: 12 }}>
                     {posts.length === 0 ? (
                         <div
@@ -390,6 +438,7 @@ function ProfilePage() {
                 </div>
             </div>
 
+            {/* --- MODALUL DE EDIT PROFILE --- */}
             {editing && (
                 <div
                     onClick={closeEditModal}
@@ -555,6 +604,83 @@ function ProfilePage() {
                     </div>
                 </div>
             )}
+
+            {/* --- MODALUL DE FOLLOWERS / FOLLOWING --- */}
+            {followModalType && (
+                <div
+                    onClick={() => setFollowModalType(null)}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.7)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                        padding: 16,
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            background: '#262626',
+                            borderRadius: 12,
+                            width: '100%',
+                            maxWidth: 400,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            maxHeight: '70vh',
+                        }}
+                    >
+                        {/* Header Modal */}
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '16px 24px',
+                                borderBottom: '1px solid #363636'
+                            }}
+                        >
+                            <span style={{ fontSize: 16, fontWeight: 700, color: 'white', textTransform: 'capitalize' }}>
+                                {followModalType}
+                            </span>
+                            <button
+                                onClick={() => setFollowModalType(null)}
+                                style={{ background: 'none', border: 'none', color: '#737373', fontSize: 18, cursor: 'pointer' }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Conținut Lista */}
+                        <div style={{ padding: 16, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            {loadingFollow ? (
+                                <div style={{ textAlign: 'center', color: '#737373', padding: '20px 0' }}>Loading...</div>
+                            ) : followUsers.length === 0 ? (
+                                <div style={{ textAlign: 'center', color: '#737373', padding: '20px 0' }}>
+                                    No {followModalType} yet.
+                                </div>
+                            ) : (
+                                followUsers.map(u => (
+                                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <img
+                                            src={u.profilePicture || `https://i.pravatar.cc/150?u=${u.id}`}
+                                            alt={u.username}
+                                            style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
+                                        />
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span style={{ fontWeight: 600, fontSize: 14 }}>{u.username}</span>
+                                            {u.fullName && <span style={{ color: '#737373', fontSize: 13 }}>{u.fullName}</span>}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     )
 }

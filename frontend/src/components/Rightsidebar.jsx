@@ -12,13 +12,11 @@ function RightSidebar() {
         const token = localStorage.getItem('token')
         const headers = { 'Authorization': `Bearer ${token}` }
 
-        // Fetch all users
         fetch(`${API_BASE_URL}/users`, { headers })
             .then(r => r.json())
             .then(users => {
-                // Decode token to get current username
                 const payload = JSON.parse(atob(token.split('.')[1]))
-                const myUsername = payload.sub // JWT subject = username
+                const myUsername = payload.sub
 
                 const me = users.find(u => u.username === myUsername)
                 const others = users.filter(u => u.username !== myUsername)
@@ -27,19 +25,56 @@ function RightSidebar() {
 
                 setCurrentUser(me || null)
                 setSuggestions(others)
+
+                if (me) {
+                    fetch(`${API_BASE_URL}/users/${me.id}/following`, { headers })
+                        .then(res => {
+                            if (res.ok) return res.json()
+                            throw new Error('Failed to fetch following')
+                        })
+                        .then(followingList => {
+                            // Creăm un obiect { userId1: true, userId2: true } pentru a ști pe cine urmărim
+                            const initialFollowedState = {}
+                            followingList.forEach(u => {
+                                initialFollowedState[u.id] = true
+                            })
+                            setFollowed(initialFollowedState)
+                        })
+                        .catch(err => console.error("Could not load following status:", err))
+                }
             })
             .catch(() => {
-                // silently fail, keep empty
             })
     }, [])
 
-    const toggleFollow = (id) => {
-        setFollowed(prev => ({ ...prev, [id]: !prev[id] }))
+    const toggleFollow = async (targetId) => {
+        if (!currentUser) return;
+
+        const isCurrentlyFollowing = followed[targetId];
+        const token = localStorage.getItem('token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        setFollowed(prev => ({ ...prev, [targetId]: !isCurrentlyFollowing }));
+
+        try {
+            const method = isCurrentlyFollowing ? 'DELETE' : 'POST';
+            const res = await fetch(`${API_BASE_URL}/users/${currentUser.id}/following/${targetId}`, {
+                method: method,
+                headers: headers
+            });
+
+            if (!res.ok) {
+                setFollowed(prev => ({ ...prev, [targetId]: isCurrentlyFollowing }));
+                console.error("Eroare la backend pentru Follow/Unfollow");
+            }
+        } catch (error) {
+            setFollowed(prev => ({ ...prev, [targetId]: isCurrentlyFollowing }));
+            console.error("Nu s-a putut conecta la server:", error);
+        }
     }
 
     return (
         <div style={{ paddingTop: 20 }}>
-            {/* Current user */}
             {currentUser && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

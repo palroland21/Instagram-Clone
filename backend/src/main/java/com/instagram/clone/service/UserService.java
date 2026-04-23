@@ -3,6 +3,7 @@ package com.instagram.clone.service;
 import com.instagram.clone.model.User;
 import com.instagram.clone.model.enums.Role;
 import com.instagram.clone.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -51,4 +52,50 @@ public class UserService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
     }
+
+    public List<User> getFollowers(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return user.getFollowers();
+    }
+
+    public List<User> getFollowing(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return user.getFollowing();
+    }
+
+    @Transactional
+    public void followUser(Long followerId, Long followedId) {
+        if (followerId.equals(followedId)) {
+            throw new RuntimeException("You cannot follow yourself");
+        }
+        User follower = userRepository.findById(followerId)
+                .orElseThrow(() -> new RuntimeException("Follower not found"));
+        User followed = userRepository.findById(followedId)
+                .orElseThrow(() -> new RuntimeException("Followed user not found"));
+
+        if (!followed.getFollowers().contains(follower)) {
+            followed.getFollowers().add(follower);
+            userRepository.save(followed);
+        }
+    }
+
+    @Transactional
+    public void unfollowUser(Long followerId, Long followedId) {
+        User follower = userRepository.findById(followerId)
+                .orElseThrow(() -> new RuntimeException("Follower not found"));
+        User followed = userRepository.findById(followedId)
+                .orElseThrow(() -> new RuntimeException("Followed user not found"));
+
+        if (followed.getFollowers().contains(follower)) {
+            followed.getFollowers().remove(follower);
+            userRepository.save(followed);
+        }
+    }
+
+
+
+
+
 }
