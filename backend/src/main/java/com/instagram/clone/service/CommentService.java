@@ -3,8 +3,10 @@ package com.instagram.clone.service;
 import com.instagram.clone.dto.request.CommentRequest;
 import com.instagram.clone.dto.response.CommentResponse;
 import com.instagram.clone.model.Comment;
+import com.instagram.clone.model.CommentVote;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.User;
+import com.instagram.clone.model.enums.VoteType;
 import com.instagram.clone.repository.CommentRepository;
 import com.instagram.clone.repository.PostRepository;
 import com.instagram.clone.repository.UserRepository;
@@ -44,32 +46,34 @@ public class CommentService {
         comment.setPostedAt(request.getPostedAt() != null ? request.getPostedAt() : LocalDateTime.now());
 
         Comment saved = commentRepository.save(comment);
-        return mapToResponse(saved);
+        return mapToResponse(saved, request.getUserId());
     }
 
-    public CommentResponse getById(Long id) {
+    public CommentResponse getById(Long id, Long currentUserId) {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Comment not found"));
-        return mapToResponse(comment);
+        return mapToResponse(comment, currentUserId);
     }
 
-    public List<CommentResponse> getAll() {
+    public List<CommentResponse> getAll(Long currentUserId) {
         List<CommentResponse> responses = new ArrayList<>();
 
         for (Comment comment : commentRepository.findAll()) {
-            responses.add(mapToResponse(comment));
+            responses.add(mapToResponse(comment, currentUserId));
         }
 
+        sortByVotesDesc(responses);
         return responses;
     }
 
-    public List<CommentResponse> getByPostId(Long postId) {
+    public List<CommentResponse> getByPostId(Long postId, Long currentUserId) {
         List<CommentResponse> responses = new ArrayList<>();
 
         for (Comment comment : commentRepository.findByPostId(postId)) {
-            responses.add(mapToResponse(comment));
+            responses.add(mapToResponse(comment, currentUserId));
         }
 
+        sortByVotesDesc(responses);
         return responses;
     }
 
@@ -90,22 +94,76 @@ public class CommentService {
         comment.setPostedAt(request.getPostedAt() != null ? request.getPostedAt() : comment.getPostedAt());
 
         Comment updated = commentRepository.save(comment);
-        return mapToResponse(updated);
+        return mapToResponse(updated, request.getUserId());
     }
 
     public void delete(Long id) {
         commentRepository.deleteById(id);
     }
 
-    private CommentResponse mapToResponse(Comment comment) {
+    private void sortByVotesDesc(List<CommentResponse> responses) {
+        responses.sort((a, b) -> {
+            int byVotes = Integer.compare(b.getVoteCount(), a.getVoteCount());
+            if (byVotes != 0) {
+                return byVotes;
+            }
+
+            if (a.getPostedAt() == null && b.getPostedAt() == null) {
+                return 0;
+            }
+            if (a.getPostedAt() == null) {
+                return 1;
+            }
+            if (b.getPostedAt() == null) {
+                return -1;
+            }
+
+            return a.getPostedAt().compareTo(b.getPostedAt());
+        });
+    }
+
+    private CommentResponse mapToResponse(Comment comment, Long currentUserId) {
         CommentResponse response = new CommentResponse();
+
+        int likeCount = 0;
+        int dislikeCount = 0;
+        boolean likedByCurrentUser = false;
+        boolean dislikedByCurrentUser = false;
+
+        for (CommentVote vote : comment.getVotes()) {
+            if (vote.getVoteType() == VoteType.LIKE) {
+                likeCount++;
+            } else if (vote.getVoteType() == VoteType.DISLIKE) {
+                dislikeCount++;
+            }
+
+            if (currentUserId != null
+                    && vote.getUser() != null
+                    && currentUserId.equals(vote.getUser().getId())) {
+                if (vote.getVoteType() == VoteType.LIKE) {
+                    likedByCurrentUser = true;
+                } else if (vote.getVoteType() == VoteType.DISLIKE) {
+                    dislikedByCurrentUser = true;
+                }
+            }
+        }
+
         response.setId(comment.getId());
         response.setUserId(comment.getUser().getId());
         response.setUsername(comment.getUser().getUsername());
+        response.setUserProfilePicture(comment.getUser().getProfilePicture());
         response.setPostId(comment.getPost().getId());
         response.setText(comment.getText());
         response.setPictureUrl(comment.getPictureUrl());
         response.setPostedAt(comment.getPostedAt());
+
+        response.setLikeCount(likeCount);
+        response.setDislikeCount(dislikeCount);
+        response.setVoteCount(likeCount - dislikeCount);
+
+        response.setLikedByCurrentUser(likedByCurrentUser);
+        response.setDislikedByCurrentUser(dislikedByCurrentUser);
+
         return response;
     }
 }

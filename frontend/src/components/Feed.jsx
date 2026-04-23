@@ -12,10 +12,10 @@ function Feed() {
         ? Number(localStorage.getItem('userId'))
         : null
 
-    const getOwnerId = item =>
+    const getOwnerId = (item) =>
         item.userId ?? item.authorId ?? item.user?.id ?? item.author?.id ?? null
 
-    const buildFileUrl = value => {
+    const buildFileUrl = (value) => {
         if (!value) return ''
 
         if (
@@ -28,6 +28,33 @@ function Feed() {
 
         return `${API_BASE_URL}${value.startsWith('/') ? '' : '/'}${value}`
     }
+
+    const normalizeComment = (comment) => ({
+        ...comment,
+        userId: Number(getOwnerId(comment)),
+        username:
+            comment.username ||
+            comment.author?.username ||
+            'user',
+        userProfilePicture: buildFileUrl(
+            comment.userProfilePicture ||
+            comment.author?.profilePicture ||
+            comment.user?.profilePicture ||
+            ''
+        ),
+        pictureUrl: buildFileUrl(
+            comment.pictureUrl ||
+            comment.picture ||
+            comment.imageUrl ||
+            comment.image ||
+            ''
+        ),
+        likeCount: Number(comment.likeCount) || 0,
+        dislikeCount: Number(comment.dislikeCount) || 0,
+        voteCount: Number(comment.voteCount) || 0,
+        likedByCurrentUser: Boolean(comment.likedByCurrentUser),
+        dislikedByCurrentUser: Boolean(comment.dislikedByCurrentUser),
+    })
 
     useEffect(() => {
         const token = localStorage.getItem('token')
@@ -51,10 +78,9 @@ function Feed() {
                 setLoading(true)
                 setError('')
 
-                const [postsRes, usersRes, commentsRes] = await Promise.all([
+                const [postsRes, usersRes] = await Promise.all([
                     fetch(postsUrl, { headers }),
                     fetch(`${API_BASE_URL}/users`, { headers }),
-                    fetch(`${API_BASE_URL}/comments`, { headers }),
                 ])
 
                 if (!postsRes.ok) {
@@ -67,46 +93,26 @@ function Feed() {
 
                 const postsData = await postsRes.json()
                 const usersData = await usersRes.json()
-                const commentsData = commentsRes.ok ? await commentsRes.json() : []
 
                 const usersMap = new Map(
-                    usersData.map(user => [Number(user.id), user])
+                    usersData.map((user) => [Number(user.id), user])
                 )
 
                 const enrichedPosts = postsData
-                    .map(post => {
+                    .map((post) => {
                         const ownerId = Number(getOwnerId(post))
                         const author = usersMap.get(ownerId)
 
-                        const postComments = commentsData
-                            .filter(comment => Number(comment.postId) === Number(post.id))
-                            .map(comment => {
-                                const commentOwnerId = Number(getOwnerId(comment))
-                                const commentAuthor = usersMap.get(commentOwnerId)
+                        const normalizedComments = Array.isArray(post.comments)
+                            ? post.comments
+                                .map(normalizeComment)
+                                .sort((a, b) => {
+                                    const byVotes = (Number(b.voteCount) || 0) - (Number(a.voteCount) || 0)
+                                    if (byVotes !== 0) return byVotes
 
-                                return {
-                                    ...comment,
-                                    userId: commentOwnerId,
-                                    username:
-                                        comment.username ||
-                                        comment.author?.username ||
-                                        commentAuthor?.username ||
-                                        'user',
-                                    userProfilePicture: buildFileUrl(
-                                        comment.userProfilePicture ||
-                                        comment.author?.profilePicture ||
-                                        commentAuthor?.profilePicture ||
-                                        ''
-                                    ),
-                                    pictureUrl: buildFileUrl(
-                                        comment.pictureUrl ||
-                                        comment.picture ||
-                                        comment.imageUrl ||
-                                        comment.image ||
-                                        ''
-                                    ),
-                                }
-                            })
+                                    return new Date(a.postedAt || 0) - new Date(b.postedAt || 0)
+                                })
+                            : []
 
                         return {
                             ...post,
@@ -122,6 +128,9 @@ function Feed() {
                                 author?.profilePicture ||
                                 ''
                             ),
+                            pictureUrls: Array.isArray(post.pictureUrls)
+                                ? post.pictureUrls.map((url) => buildFileUrl(url))
+                                : [],
                             pictureUrl: buildFileUrl(
                                 post.pictureUrl ||
                                 post.picture ||
@@ -130,10 +139,15 @@ function Feed() {
                                 post.photoUrl ||
                                 ''
                             ),
-                            comments: postComments,
+                            likeCount: Number(post.likeCount) || 0,
+                            dislikeCount: Number(post.dislikeCount) || 0,
+                            voteCount: Number(post.voteCount) || 0,
+                            likedByCurrentUser: Boolean(post.likedByCurrentUser),
+                            dislikedByCurrentUser: Boolean(post.dislikedByCurrentUser),
+                            comments: normalizedComments,
                         }
                     })
-                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
 
                 setPosts(enrichedPosts)
             } catch (err) {
@@ -168,7 +182,7 @@ function Feed() {
                     </div>
                 )}
 
-                {!loading && !error && posts.map(post => (
+                {!loading && !error && posts.map((post) => (
                     <PostCard
                         key={post.id}
                         post={post}
