@@ -162,7 +162,7 @@ function PostCard({ post, currentUserId }) {
             >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <img
-                        src={`https://i.pravatar.cc/150?u=${post.userId}`}
+                        src={post.userProfilePicture || `https://i.pravatar.cc/150?u=${post.userId}`}
                         alt={post.username}
                         style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
                     />

@@ -14,47 +14,76 @@ function Feed() {
 
     useEffect(() => {
         const token = localStorage.getItem('token')
-        const headers = { 'Authorization': `Bearer ${token}` }
 
-        const url = currentUserId
+        if (!token) {
+            setError('You are not logged in.')
+            setLoading(false)
+            return
+        }
+
+        const headers = {
+            Authorization: `Bearer ${token}`,
+        }
+
+        const postsUrl = currentUserId
             ? `${API_BASE_URL}/posts?currentUserId=${currentUserId}`
             : `${API_BASE_URL}/posts`
 
-        fetch(url, { headers })
-            .then(r => {
-                if (!r.ok) throw new Error('Failed to fetch posts')
-                return r.json()
-            })
-            .then(async (data) => {
-                // Sort newest first
-                const sorted = [...data].sort(
-                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        const loadFeed = async () => {
+            try {
+                const [postsRes, usersRes, commentsRes] = await Promise.all([
+                    fetch(postsUrl, { headers }),
+                    fetch(`${API_BASE_URL}/users`, { headers }),
+                    fetch(`${API_BASE_URL}/comments`, { headers }),
+                ])
+
+                if (!postsRes.ok) throw new Error('Failed to fetch posts')
+                if (!usersRes.ok) throw new Error('Failed to fetch users')
+
+                const postsData = await postsRes.json()
+                const usersData = await usersRes.json()
+                const commentsData = commentsRes.ok ? await commentsRes.json() : []
+
+                const usersMap = new Map(
+                    usersData.map(user => [Number(user.id), user])
                 )
 
-                // Fetch comments for every post in parallel
-                const withComments = await Promise.all(
-                    sorted.map(async (post) => {
-                        try {
-                            const res = await fetch(`${API_BASE_URL}/comments`, { headers })
-                            if (!res.ok) return { ...post, comments: [] }
-                            const allComments = await res.json()
-                            const postComments = allComments.filter(c => c.postId === post.id)
-                            return { ...post, comments: postComments }
-                        } catch {
-                            return { ...post, comments: [] }
+                const enrichedPosts = postsData
+                    .map(post => {
+                        const author = usersMap.get(Number(post.userId))
+
+                        const postComments = commentsData
+                            .filter(comment => Number(comment.postId) === Number(post.id))
+                            .map(comment => {
+                                const commentAuthor = usersMap.get(Number(comment.userId))
+
+                                return {
+                                    ...comment,
+                                    username: comment.username || commentAuthor?.username || 'user',
+                                    userProfilePicture: comment.userProfilePicture || commentAuthor?.profilePicture || '',
+                                }
+                            })
+
+                        return {
+                            ...post,
+                            username: post.username || author?.username || 'user',
+                            userProfilePicture: post.userProfilePicture || author?.profilePicture || '',
+                            comments: postComments,
                         }
                     })
-                )
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
-                setPosts(withComments)
+                setPosts(enrichedPosts)
                 setLoading(false)
-            })
-            .catch(err => {
+            } catch (err) {
                 console.error('Fetch posts error:', err)
                 setError('Could not load posts.')
                 setLoading(false)
-            })
-    }, [])
+            }
+        }
+
+        loadFeed()
+    }, [currentUserId])
 
     return (
         <div style={{ paddingTop: 16 }}>
