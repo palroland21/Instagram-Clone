@@ -5,9 +5,11 @@ import com.instagram.clone.dto.response.UserResponse;
 import com.instagram.clone.model.User;
 import com.instagram.clone.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -30,15 +32,19 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public UserResponse update(@PathVariable Long id, @RequestBody UserRequest request) {
-        User updatedUser = new User();
-        updatedUser.setUsername(request.getUsername());
-        updatedUser.setEmail(request.getEmail());
-        updatedUser.setFullName(request.getFullName());
-        updatedUser.setBio(request.getBio());
-        updatedUser.setProfilePicture(request.getProfilePicture());
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody UserRequest request) {
+        try {
+            User updatedUser = new User();
+            updatedUser.setUsername(request.getUsername());
+            updatedUser.setEmail(request.getEmail());
+            updatedUser.setFullName(request.getFullName());
+            updatedUser.setBio(request.getBio());
+            updatedUser.setProfilePicture(request.getProfilePicture());
 
-        return toResponse(userService.update(id, updatedUser));
+            return ResponseEntity.ok(toResponse(userService.update(id, updatedUser)));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+        }
     }
 
     @DeleteMapping("/{id}")

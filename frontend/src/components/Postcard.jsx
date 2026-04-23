@@ -24,6 +24,7 @@ function PostCard({ post, currentUserId }) {
     const [comments, setComments] = useState(post.comments || [])
     const [commentText, setCommentText] = useState('')
     const [showComments, setShowComments] = useState(false)
+    const [expanded, setExpanded] = useState(false)
 
     const token = localStorage.getItem('token')
 
@@ -38,17 +39,10 @@ function PostCard({ post, currentUserId }) {
                 `${API_BASE_URL}/post-votes/toggle-like?userId=${currentUserId}&postId=${post.id}`,
                 {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 }
             )
-
-            if (!response.ok) {
-                const errorText = await response.text()
-                throw new Error(errorText || 'Failed to toggle like')
-            }
-
+            if (!response.ok) throw new Error('Failed to toggle like')
             const data = await response.json()
             setLiked(Boolean(data.liked))
             setLikes(Number(data.likeCount) || 0)
@@ -59,7 +53,6 @@ function PostCard({ post, currentUserId }) {
 
     const handlePostComment = async () => {
         if (!commentText.trim()) return
-
         if (currentUserId === null || Number.isNaN(currentUserId)) {
             console.error('currentUserId missing')
             return
@@ -78,14 +71,8 @@ function PostCard({ post, currentUserId }) {
                     text: commentText.trim()
                 })
             })
-
-            if (!response.ok) {
-                const errorText = await response.text()
-                throw new Error(errorText || 'Failed to post comment')
-            }
-
+            if (!response.ok) throw new Error('Failed to post comment')
             const newComment = await response.json()
-
             setComments(prev => [...prev, newComment])
             setCommentText('')
             setShowComments(true)
@@ -94,169 +81,135 @@ function PostCard({ post, currentUserId }) {
         }
     }
 
+    // Build caption: text + tags joined, hashtags colored inline
+    const captionText = post.caption || ''
+    const tagLine = post.tagNames?.length > 0
+        ? post.tagNames.map(t => `#${t}`).join(' ')
+        : ''
+    const fullText = [captionText, tagLine].filter(Boolean).join('\n')
+    const isLong = fullText.length > 125
+    const displayText = isLong && !expanded ? fullText.slice(0, 125) : fullText
+
+    const renderLine = (line, key) => {
+        const parts = line.split(/(#\S+)/g)
+        return (
+            <span key={key}>
+                {parts.map((part, j) =>
+                    part.startsWith('#')
+                        ? <span key={j} style={{ color: '#0095f6', cursor: 'pointer' }}>{part}</span>
+                        : <span key={j}>{part}</span>
+                )}
+            </span>
+        )
+    }
+
     return (
         <article style={{ borderBottom: '1px solid #262626', paddingBottom: 8, marginBottom: 8 }}>
-            <div
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 4px 8px'
-                }}
-            >
+
+            {/* ── Header ── */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 4px 8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <img
                         src={`https://i.pravatar.cc/150?u=${post.userId}`}
                         alt={post.username}
-                        style={{ width: 32, height: 32, borderRadius: '50%' }}
+                        style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
                     />
-
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{ fontSize: 14, fontWeight: 600, color: '#f5f5f5' }}>
                                 {post.username}
                             </span>
-
                             <span style={{ color: '#737373', fontSize: 14 }}>•</span>
-
                             <span style={{ fontSize: 14, color: '#737373' }}>
                                 {post.createdAt ? timeAgo(post.createdAt) : ''}
                             </span>
                         </div>
+                        {post.location && (
+                            <div style={{ fontSize: 12, color: '#737373' }}>{post.location}</div>
+                        )}
                     </div>
                 </div>
-
-                <button
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: 4
-                    }}
-                >
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
                     <DotsIcon />
                 </button>
             </div>
 
+            {/* ── Image ── */}
             {post.pictureUrl && (
-                <div
-                    style={{
-                        margin: '0 -4px',
-                        borderRadius: 4,
-                        overflow: 'hidden',
-                        border: '1px solid #262626'
-                    }}
-                >
+                <div style={{ margin: '0 -4px', borderRadius: 4, overflow: 'hidden', border: '1px solid #262626' }}>
                     <img
                         src={post.pictureUrl}
                         alt="post"
-                        style={{
-                            width: '100%',
-                            maxHeight: 585,
-                            objectFit: 'cover',
-                            display: 'block'
-                        }}
+                        style={{ width: '100%', maxHeight: 585, objectFit: 'cover', display: 'block' }}
                     />
                 </div>
             )}
 
+            {/* ── Actions ── */}
             <div style={{ padding: '8px 4px 0' }}>
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: 8
-                    }}
-                >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                     <div style={{ display: 'flex', gap: 16 }}>
                         <button
                             onClick={handleLike}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: 4,
-                                display: 'flex',
-                                alignItems: 'center'
-                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
                         >
                             <HeartIcon filled={liked} size={24} />
                         </button>
-
                         <button
                             onClick={() => setShowComments(prev => !prev)}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: 4,
-                                display: 'flex',
-                                alignItems: 'center'
-                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
                         >
                             <CommentIcon />
                         </button>
-
-                        <button
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: 4,
-                                display: 'flex',
-                                alignItems: 'center'
-                            }}
-                        >
+                        <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
                             <ShareIcon />
                         </button>
                     </div>
-
                     <button
                         onClick={() => setSaved(s => !s)}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: 4,
-                            display: 'flex',
-                            alignItems: 'center'
-                        }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
                     >
                         <BookmarkIcon filled={saved} />
                     </button>
                 </div>
 
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#f5f5f5', marginBottom: 6 }}>
-                    {likes} likes
+                {/* ── Likes ── */}
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#f5f5f5', marginBottom: 4 }}>
+                    {likes} {likes === 1 ? 'like' : 'likes'}
                 </div>
 
-                {post.title && (
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#f5f5f5', marginBottom: 4 }}>
-                        {post.title}
+                {/* ── Caption: username bold + text + hashtags all inline ── */}
+                {fullText && (
+                    <div style={{ fontSize: 14, color: '#f5f5f5', lineHeight: 1.5, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 700, marginRight: 6, cursor: 'pointer' }}>
+                            {post.username}
+                        </span>
+                        {displayText.split('\n').map((line, i, arr) => (
+                            <span key={i}>
+                                {renderLine(line, i)}
+                                {i < arr.length - 1 && <br />}
+                            </span>
+                        ))}
+                        {isLong && (
+                            <span
+                                onClick={() => setExpanded(e => !e)}
+                                style={{ color: '#737373', cursor: 'pointer', marginLeft: 4 }}
+                            >
+                                {expanded ? ' less' : '... more'}
+                            </span>
+                        )}
                     </div>
                 )}
 
-                {post.caption && (
-                    <div style={{ fontSize: 14, color: '#f5f5f5', marginBottom: 4 }}>
-                        <span style={{ fontWeight: 600, marginRight: 6 }}>{post.username}</span>
-                        {post.caption}
-                    </div>
-                )}
-
+                {/* ── Comments ── */}
                 {showComments && (
                     <div style={{ marginBottom: 8 }}>
                         {comments.length === 0 ? (
                             <div style={{ fontSize: 14, color: '#737373' }}>No comments yet.</div>
                         ) : (
                             comments.map((c, i) => (
-                                <div
-                                    key={c.id || i}
-                                    style={{ fontSize: 14, color: '#f5f5f5', marginBottom: 4 }}
-                                >
-                                    <span style={{ fontWeight: 600, marginRight: 6 }}>
-                                        {c.username || 'user'}
-                                    </span>
+                                <div key={c.id || i} style={{ fontSize: 14, color: '#f5f5f5', marginBottom: 4, lineHeight: 1.4 }}>
+                                    <span style={{ fontWeight: 700, marginRight: 6 }}>{c.username || 'user'}</span>
                                     <span>{c.text}</span>
                                 </div>
                             ))
@@ -264,34 +217,23 @@ function PostCard({ post, currentUserId }) {
                     </div>
                 )}
 
+                {/* ── Add comment ── */}
                 <div style={{ display: 'flex', alignItems: 'center', marginTop: 8, paddingTop: 4 }}>
                     <input
                         placeholder="Add a comment..."
                         value={commentText}
                         onChange={e => setCommentText(e.target.value)}
-                        onKeyDown={e => {
-                            if (e.key === 'Enter') handlePostComment()
-                        }}
+                        onKeyDown={e => { if (e.key === 'Enter') handlePostComment() }}
                         style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#f5f5f5',
-                            fontSize: 14,
-                            flex: 1,
-                            outline: 'none',
-                            padding: 0
+                            background: 'none', border: 'none', color: '#f5f5f5',
+                            fontSize: 14, flex: 1, outline: 'none', padding: 0
                         }}
                     />
-
                     <button
                         onClick={handlePostComment}
                         style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: '#0095f6',
-                            fontSize: 14,
-                            fontWeight: 600,
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: '#0095f6', fontSize: 14, fontWeight: 600,
                             opacity: commentText.trim() ? 1 : 0.4
                         }}
                     >

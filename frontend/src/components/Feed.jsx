@@ -14,22 +14,39 @@ function Feed() {
 
     useEffect(() => {
         const token = localStorage.getItem('token')
+        const headers = { 'Authorization': `Bearer ${token}` }
 
         const url = currentUserId
             ? `${API_BASE_URL}/posts?currentUserId=${currentUserId}`
             : `${API_BASE_URL}/posts`
 
-        fetch(url, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
+        fetch(url, { headers })
             .then(r => {
                 if (!r.ok) throw new Error('Failed to fetch posts')
                 return r.json()
             })
-            .then(data => {
-                setPosts(data)
+            .then(async (data) => {
+                // Sort newest first
+                const sorted = [...data].sort(
+                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                )
+
+                // Fetch comments for every post in parallel
+                const withComments = await Promise.all(
+                    sorted.map(async (post) => {
+                        try {
+                            const res = await fetch(`${API_BASE_URL}/comments`, { headers })
+                            if (!res.ok) return { ...post, comments: [] }
+                            const allComments = await res.json()
+                            const postComments = allComments.filter(c => c.postId === post.id)
+                            return { ...post, comments: postComments }
+                        } catch {
+                            return { ...post, comments: [] }
+                        }
+                    })
+                )
+
+                setPosts(withComments)
                 setLoading(false)
             })
             .catch(err => {
