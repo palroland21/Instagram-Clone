@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import PostCard from './PostCard'
 
 const API_BASE_URL = 'http://localhost:9090'
@@ -11,6 +11,23 @@ function Feed() {
     const currentUserId = localStorage.getItem('userId')
         ? Number(localStorage.getItem('userId'))
         : null
+
+    const getOwnerId = item =>
+        item.userId ?? item.authorId ?? item.user?.id ?? item.author?.id ?? null
+
+    const buildFileUrl = value => {
+        if (!value) return ''
+
+        if (
+            value.startsWith('http://') ||
+            value.startsWith('https://') ||
+            value.startsWith('data:')
+        ) {
+            return value
+        }
+
+        return `${API_BASE_URL}${value.startsWith('/') ? '' : '/'}${value}`
+    }
 
     useEffect(() => {
         const token = localStorage.getItem('token')
@@ -31,14 +48,22 @@ function Feed() {
 
         const loadFeed = async () => {
             try {
+                setLoading(true)
+                setError('')
+
                 const [postsRes, usersRes, commentsRes] = await Promise.all([
                     fetch(postsUrl, { headers }),
                     fetch(`${API_BASE_URL}/users`, { headers }),
                     fetch(`${API_BASE_URL}/comments`, { headers }),
                 ])
 
-                if (!postsRes.ok) throw new Error('Failed to fetch posts')
-                if (!usersRes.ok) throw new Error('Failed to fetch users')
+                if (!postsRes.ok) {
+                    throw new Error('Failed to fetch posts')
+                }
+
+                if (!usersRes.ok) {
+                    throw new Error('Failed to fetch users')
+                }
 
                 const postsData = await postsRes.json()
                 const usersData = await usersRes.json()
@@ -50,34 +75,71 @@ function Feed() {
 
                 const enrichedPosts = postsData
                     .map(post => {
-                        const author = usersMap.get(Number(post.userId))
+                        const ownerId = Number(getOwnerId(post))
+                        const author = usersMap.get(ownerId)
 
                         const postComments = commentsData
                             .filter(comment => Number(comment.postId) === Number(post.id))
                             .map(comment => {
-                                const commentAuthor = usersMap.get(Number(comment.userId))
+                                const commentOwnerId = Number(getOwnerId(comment))
+                                const commentAuthor = usersMap.get(commentOwnerId)
 
                                 return {
                                     ...comment,
-                                    username: comment.username || commentAuthor?.username || 'user',
-                                    userProfilePicture: comment.userProfilePicture || commentAuthor?.profilePicture || '',
+                                    userId: commentOwnerId,
+                                    username:
+                                        comment.username ||
+                                        comment.author?.username ||
+                                        commentAuthor?.username ||
+                                        'user',
+                                    userProfilePicture: buildFileUrl(
+                                        comment.userProfilePicture ||
+                                        comment.author?.profilePicture ||
+                                        commentAuthor?.profilePicture ||
+                                        ''
+                                    ),
+                                    pictureUrl: buildFileUrl(
+                                        comment.pictureUrl ||
+                                        comment.picture ||
+                                        comment.imageUrl ||
+                                        comment.image ||
+                                        ''
+                                    ),
                                 }
                             })
 
                         return {
                             ...post,
-                            username: post.username || author?.username || 'user',
-                            userProfilePicture: post.userProfilePicture || author?.profilePicture || '',
+                            userId: ownerId,
+                            username:
+                                post.username ||
+                                post.author?.username ||
+                                author?.username ||
+                                'user',
+                            userProfilePicture: buildFileUrl(
+                                post.userProfilePicture ||
+                                post.author?.profilePicture ||
+                                author?.profilePicture ||
+                                ''
+                            ),
+                            pictureUrl: buildFileUrl(
+                                post.pictureUrl ||
+                                post.picture ||
+                                post.imageUrl ||
+                                post.image ||
+                                post.photoUrl ||
+                                ''
+                            ),
                             comments: postComments,
                         }
                     })
                     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
                 setPosts(enrichedPosts)
-                setLoading(false)
             } catch (err) {
                 console.error('Fetch posts error:', err)
                 setError('Could not load posts.')
+            } finally {
                 setLoading(false)
             }
         }
@@ -106,7 +168,7 @@ function Feed() {
                     </div>
                 )}
 
-                {posts.map(post => (
+                {!loading && !error && posts.map(post => (
                     <PostCard
                         key={post.id}
                         post={post}

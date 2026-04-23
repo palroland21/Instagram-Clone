@@ -37,6 +37,20 @@ function timeAgo(dateString) {
     return `${diffDays}d`
 }
 
+function buildFileUrl(value) {
+    if (!value) return ''
+
+    if (
+        value.startsWith('http://') ||
+        value.startsWith('https://') ||
+        value.startsWith('data:')
+    ) {
+        return value
+    }
+
+    return `${API_BASE_URL}${value.startsWith('/') ? '' : '/'}${value}`
+}
+
 function PostCard({ post, currentUserId }) {
     const [liked, setLiked] = useState(post.likedByCurrentUser || false)
     const [saved, setSaved] = useState(false)
@@ -49,12 +63,11 @@ function PostCard({ post, currentUserId }) {
 
     const token = localStorage.getItem('token')
 
-    // suport si pentru postari vechi cu pictureUrl, si pentru cele noi cu pictureUrls
     const images =
         Array.isArray(post.pictureUrls) && post.pictureUrls.length > 0
-            ? post.pictureUrls
+            ? post.pictureUrls.map(buildFileUrl)
             : post.pictureUrl
-                ? [post.pictureUrl]
+                ? [buildFileUrl(post.pictureUrl)]
                 : []
 
     const currentImage = images[currentImageIndex] || ''
@@ -108,7 +121,28 @@ function PostCard({ post, currentUserId }) {
             if (!response.ok) throw new Error('Failed to post comment')
 
             const newComment = await response.json()
-            setComments((prev) => [...prev, newComment])
+
+            const enrichedComment = {
+                ...newComment,
+                userId:
+                    newComment.userId ??
+                    newComment.authorId ??
+                    newComment.user?.id ??
+                    newComment.author?.id ??
+                    currentUserId,
+                username:
+                    newComment.username ||
+                    newComment.author?.username ||
+                    'user',
+                userProfilePicture: buildFileUrl(
+                    newComment.userProfilePicture ||
+                    newComment.author?.profilePicture ||
+                    newComment.user?.profilePicture ||
+                    ''
+                ),
+            }
+
+            setComments((prev) => [...prev, enrichedComment])
             setCommentText('')
             setShowComments(true)
         } catch (error) {
@@ -162,7 +196,10 @@ function PostCard({ post, currentUserId }) {
             >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <img
-                        src={post.userProfilePicture || `https://i.pravatar.cc/150?u=${post.userId}`}
+                        src={
+                            buildFileUrl(post.userProfilePicture) ||
+                            `https://i.pravatar.cc/150?u=${post.userId}`
+                        }
                         alt={post.username}
                         style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
                     />
@@ -391,16 +428,42 @@ function PostCard({ post, currentUserId }) {
                                 <div
                                     key={c.id || i}
                                     style={{
-                                        fontSize: 14,
-                                        color: '#f5f5f5',
-                                        marginBottom: 4,
-                                        lineHeight: 1.4,
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        gap: 10,
+                                        marginBottom: 12,
                                     }}
                                 >
-                                    <span style={{ fontWeight: 700, marginRight: 6 }}>
-                                        {c.username || 'user'}
-                                    </span>
-                                    <span>{c.text}</span>
+                                    <img
+                                        src={
+                                            buildFileUrl(c.userProfilePicture) ||
+                                            `https://i.pravatar.cc/100?u=${c.userId || c.username || i}`
+                                        }
+                                        alt={c.username || 'user'}
+                                        style={{
+                                            width: 28,
+                                            height: 28,
+                                            borderRadius: '50%',
+                                            objectFit: 'cover',
+                                            flexShrink: 0,
+                                            marginTop: 2,
+                                        }}
+                                    />
+
+                                    <div
+                                        style={{
+                                            fontSize: 14,
+                                            color: '#f5f5f5',
+                                            lineHeight: 1.4,
+                                            wordBreak: 'break-word',
+                                            flex: 1,
+                                        }}
+                                    >
+                        <span style={{ fontWeight: 700, marginRight: 6 }}>
+                            {c.username || 'user'}
+                        </span>
+                                        <span>{c.text}</span>
+                                    </div>
                                 </div>
                             ))
                         )}

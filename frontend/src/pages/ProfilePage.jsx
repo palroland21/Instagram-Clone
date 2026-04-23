@@ -2,15 +2,19 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const API_BASE_URL = 'http://localhost:9090'
+const UPLOAD_API_BASE_URL = 'http://localhost:9090/uploads'
 
 function ProfilePage() {
     const navigate = useNavigate()
     const resetUsernameTimeoutRef = useRef(null)
+    const fileInputRef = useRef(null)
 
     const [user, setUser] = useState(null)
     const [posts, setPosts] = useState([])
     const [loading, setLoading] = useState(true)
     const [editing, setEditing] = useState(false)
+    const [profilePictureFile, setProfilePictureFile] = useState(null)
+    const [isSaving, setIsSaving] = useState(false)
     const [editForm, setEditForm] = useState({
         username: '',
         fullName: '',
@@ -19,6 +23,30 @@ function ProfilePage() {
         profilePicture: '',
     })
     const [saveError, setSaveError] = useState('')
+
+    const getPostImages = post => {
+        if (Array.isArray(post.pictureUrls) && post.pictureUrls.length > 0) {
+            return post.pictureUrls
+        }
+
+        if (post.pictureUrl) {
+            return [post.pictureUrl]
+        }
+
+        if (post.picture) {
+            return [post.picture]
+        }
+
+        if (post.imageUrl) {
+            return [post.imageUrl]
+        }
+
+        if (post.image) {
+            return [post.image]
+        }
+
+        return []
+    }
 
     useEffect(() => {
         const token = localStorage.getItem('token')
@@ -59,7 +87,7 @@ function ProfilePage() {
                 })
 
                 const myPosts = allPosts
-                    .filter(p => p.userId === me.id)
+                    .filter(p => Number(p.userId) === Number(me.id))
                     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
                 setPosts(myPosts)
@@ -88,11 +116,13 @@ function ProfilePage() {
             email: user.email || '',
             profilePicture: user.profilePicture || '',
         })
+        setProfilePictureFile(null)
     }
 
     const closeEditModal = () => {
         setEditing(false)
         setSaveError('')
+        setProfilePictureFile(null)
 
         if (resetUsernameTimeoutRef.current) {
             clearTimeout(resetUsernameTimeoutRef.current)
@@ -102,20 +132,65 @@ function ProfilePage() {
         resetEditFormToCurrentUser()
     }
 
+    const handleProfilePictureButtonClick = () => {
+        fileInputRef.current?.click()
+    }
+
+    const handleProfilePictureFileChange = e => {
+        const file = e.target.files?.[0] || null
+        setProfilePictureFile(file)
+
+        if (!file) return
+
+        const previewUrl = URL.createObjectURL(file)
+        setEditForm(prev => ({
+            ...prev,
+            profilePicture: previewUrl,
+        }))
+    }
+
     const handleSave = async () => {
         if (!user) return
 
         setSaveError('')
+        setIsSaving(true)
         const token = localStorage.getItem('token')
 
         try {
+            let finalProfilePictureUrl = user.profilePicture || ''
+
+            if (profilePictureFile) {
+                const formData = new FormData()
+                formData.append('file', profilePictureFile)
+
+                const uploadResponse = await fetch(`${UPLOAD_API_BASE_URL}/image`, {
+                    method: 'POST',
+                    body: formData,
+                })
+
+                const uploadData = await uploadResponse.json().catch(() => null)
+
+                if (!uploadResponse.ok) {
+                    setSaveError(uploadData?.message || 'Image upload failed.')
+                    setIsSaving(false)
+                    return
+                }
+
+                finalProfilePictureUrl = uploadData?.url || ''
+            }
+
+            const bodyToSend = {
+                ...editForm,
+                profilePicture: finalProfilePictureUrl,
+            }
+
             const res = await fetch(`${API_BASE_URL}/users/${user.id}`, {
                 method: 'PUT',
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(editForm),
+                body: JSON.stringify(bodyToSend),
             })
 
             if (!res.ok) {
@@ -163,6 +238,7 @@ function ProfilePage() {
                         setEditForm(prev => ({
                             ...prev,
                             username: user.username || '',
+                            profilePicture: finalProfilePictureUrl || user.profilePicture || '',
                         }))
                         setSaveError('')
                         resetUsernameTimeoutRef.current = null
@@ -171,6 +247,7 @@ function ProfilePage() {
                     setSaveError(errorMessage)
                 }
 
+                setIsSaving(false)
                 return
             }
 
@@ -189,10 +266,13 @@ function ProfilePage() {
                 email: updated.email || '',
                 profilePicture: updated.profilePicture || '',
             })
+            setProfilePictureFile(null)
             setSaveError('')
             setEditing(false)
         } catch {
             setSaveError('Cannot connect to backend.')
+        } finally {
+            setIsSaving(false)
         }
     }
 
@@ -340,51 +420,56 @@ function ProfilePage() {
                         </div>
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
-                            {posts.map(post => (
-                                <div
-                                    key={post.id}
-                                    style={{
-                                        aspectRatio: '1',
-                                        overflow: 'hidden',
-                                        background: '#111',
-                                    }}
-                                >
-                                    {post.pictureUrl ? (
-                                        <img
-                                            src={post.pictureUrl}
-                                            alt={post.title}
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                objectFit: 'cover',
-                                                display: 'block',
-                                            }}
-                                        />
-                                    ) : (
-                                        <div
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                background: '#1a1a1a',
-                                            }}
-                                        >
-                                            <span
+                            {posts.map(post => {
+                                const images = getPostImages(post)
+                                const firstImage = images[0] || ''
+
+                                return (
+                                    <div
+                                        key={post.id}
+                                        style={{
+                                            aspectRatio: '1',
+                                            overflow: 'hidden',
+                                            background: '#111',
+                                        }}
+                                    >
+                                        {firstImage ? (
+                                            <img
+                                                src={firstImage}
+                                                alt={post.title || 'post'}
                                                 style={{
-                                                    fontSize: 11,
-                                                    color: '#737373',
-                                                    padding: 4,
-                                                    textAlign: 'center',
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    objectFit: 'cover',
+                                                    display: 'block',
+                                                }}
+                                            />
+                                        ) : (
+                                            <div
+                                                style={{
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    background: '#1a1a1a',
                                                 }}
                                             >
-                                                {post.title || 'No image'}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                                                <span
+                                                    style={{
+                                                        fontSize: 11,
+                                                        color: '#737373',
+                                                        padding: 4,
+                                                        textAlign: 'center',
+                                                    }}
+                                                >
+                                                    {post.title || post.caption || 'No image'}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
                         </div>
                     )}
                 </div>
@@ -457,6 +542,45 @@ function ProfilePage() {
                             />
                         </div>
 
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleProfilePictureFileChange}
+                            style={{ display: 'none' }}
+                        />
+
+                        <button
+                            type="button"
+                            onClick={handleProfilePictureButtonClick}
+                            style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                background: '#363636',
+                                border: '1px solid #4a4a4a',
+                                borderRadius: 8,
+                                color: 'white',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            Change profile picture
+                        </button>
+
+                        {profilePictureFile && (
+                            <div
+                                style={{
+                                    fontSize: 13,
+                                    color: '#b3b3b3',
+                                    textAlign: 'center',
+                                    marginTop: -8,
+                                }}
+                            >
+                                Selected: {profilePictureFile.name}
+                            </div>
+                        )}
+
                         {saveError && (
                             <div
                                 style={{
@@ -475,7 +599,6 @@ function ProfilePage() {
                             { key: 'username', label: 'Username', multiline: false },
                             { key: 'fullName', label: 'Full name', multiline: false },
                             { key: 'bio', label: 'Bio', multiline: true },
-                            { key: 'profilePicture', label: 'Profile picture URL', multiline: false },
                         ].map(({ key, label, multiline }) => (
                             <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <label
@@ -538,19 +661,21 @@ function ProfilePage() {
 
                         <button
                             onClick={handleSave}
+                            disabled={isSaving}
                             style={{
                                 width: '100%',
                                 padding: '10px',
-                                background: '#0095f6',
+                                background: isSaving ? '#5aa7dd' : '#0095f6',
                                 border: 'none',
                                 borderRadius: 8,
                                 color: 'white',
                                 fontSize: 14,
                                 fontWeight: 700,
-                                cursor: 'pointer',
+                                cursor: isSaving ? 'default' : 'pointer',
+                                opacity: isSaving ? 0.85 : 1,
                             }}
                         >
-                            Save
+                            {isSaving ? 'Saving...' : 'Save'}
                         </button>
                     </div>
                 </div>
