@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import Sidebar from './Sidebar'
-import PostCard from './PostCard'
+import Sidebar from '../components/Sidebar'
+import PostCard from '../components/Postcard.jsx'
 
 const API_BASE_URL = 'http://localhost:9090'
 
