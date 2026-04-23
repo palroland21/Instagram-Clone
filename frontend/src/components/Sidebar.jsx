@@ -68,7 +68,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
 
     const navItems = [
         { id: 'home', label: 'Home', path: '/home', icon: <HomeIcon filled={activeItem === 'home'} /> },
-        { id: 'search', label: 'Search', icon: <SearchIcon /> },
+        { id: 'search', label: 'Search', path: '/search', icon: <SearchIcon /> },
         { id: 'explore', label: 'Explore', icon: <ExploreIcon /> },
         { id: 'messages', label: 'Messages', icon: <MessagesIcon /> },
         { id: 'notifications', label: 'Notifications', icon: <HeartIcon /> },
@@ -109,7 +109,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
     if (isMobile) {
         const mobileItems = [
             { id: 'home', path: '/home', icon: <HomeIcon filled={activeItem === 'home'} /> },
-            { id: 'search', icon: <SearchIcon /> },
+            { id: 'search', path: '/search', icon: <SearchIcon /> },
             { id: 'create', icon: <PlusIcon />, action: () => setShowCreateModal(true) },
             { id: 'notifications', icon: <HeartIcon filled={false} /> },
             {
