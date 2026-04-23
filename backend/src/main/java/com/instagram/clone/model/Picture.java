@@ -1,24 +1,24 @@
 package com.instagram.clone.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
-import java.sql.Timestamp;
-import java.util.ArrayList;
-
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "pictures")
 public class Picture {
 
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-        @Column
-        private String pictureURL;
+    @Column(nullable = false)
+    private String pictureUrl;
 
-        @ManyToOne
-        @JoinColumn(name = "post_id", nullable = false)
-        private Post post; //picture trb sa stie de care post apartine
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 }

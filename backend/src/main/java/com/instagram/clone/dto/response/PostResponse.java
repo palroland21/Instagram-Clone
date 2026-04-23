@@ -11,7 +11,7 @@ public class PostResponse {
     private Long id;
     private Long userId;
     private String username;
-    private String pictureUrl;
+    private List<String> pictureUrls;
     private String location;
     private String caption;
     private String title;

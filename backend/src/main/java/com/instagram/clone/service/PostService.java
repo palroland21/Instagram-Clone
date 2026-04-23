@@ -4,6 +4,7 @@ import com.instagram.clone.dto.request.PostRequest;
 import com.instagram.clone.dto.response.CommentResponse;
 import com.instagram.clone.dto.response.PostResponse;
 import com.instagram.clone.model.Comment;
+import com.instagram.clone.model.Picture;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.Tag;
 import com.instagram.clone.model.User;
@@ -45,15 +46,18 @@ public class PostService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        validatePictureUrls(request.getPictureUrls());
+
         Post post = new Post();
         post.setUser(user);
-        post.setPictureUrl(request.getPictureUrl());
         post.setLocation(request.getLocation());
         post.setCaption(request.getCaption());
         post.setTitle(request.getTitle());
         post.setCreatedAt(LocalDateTime.now());
         post.setStatus(request.getStatus() != null ? request.getStatus() : PostStatus.JUST_POSTED);
         post.setTags(getOrCreateTags(request.getTagNames()));
+
+        addPicturesToPost(post, request.getPictureUrls());
 
         Post saved = postRepository.save(post);
         return mapToResponse(saved, request.getUserId());
@@ -88,8 +92,9 @@ public class PostService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        validatePictureUrls(request.getPictureUrls());
+
         existing.setUser(user);
-        existing.setPictureUrl(request.getPictureUrl());
         existing.setLocation(request.getLocation());
         existing.setCaption(request.getCaption());
         existing.setTitle(request.getTitle());
@@ -100,12 +105,37 @@ public class PostService {
 
         existing.setTags(getOrCreateTags(request.getTagNames()));
 
+        existing.clearPictures();
+        addPicturesToPost(existing, request.getPictureUrls());
+
         Post updated = postRepository.save(existing);
         return mapToResponse(updated, request.getUserId());
     }
 
     public void delete(Long id) {
         postRepository.deleteById(id);
+    }
+
+    private void validatePictureUrls(List<String> pictureUrls) {
+        if (pictureUrls == null || pictureUrls.isEmpty()) {
+            throw new RuntimeException("A post must contain at least one picture.");
+        }
+    }
+
+    private void addPicturesToPost(Post post, List<String> pictureUrls) {
+        for (String url : pictureUrls) {
+            if (url == null || url.trim().isEmpty()) {
+                continue;
+            }
+
+            Picture picture = new Picture();
+            picture.setPictureUrl(url.trim());
+            post.addPicture(picture);
+        }
+
+        if (post.getPictures().isEmpty()) {
+            throw new RuntimeException("A post must contain at least one valid picture.");
+        }
     }
 
     private List<Tag> getOrCreateTags(List<String> tagNames) {
@@ -138,7 +168,7 @@ public class PostService {
         response.setId(post.getId());
         response.setUserId(post.getUser().getId());
         response.setUsername(post.getUser().getUsername());
-        response.setPictureUrl(post.getPictureUrl());
+        response.setPictureUrls(extractPictureUrls(post.getPictures()));
         response.setLocation(post.getLocation());
         response.setCaption(post.getCaption());
         response.setTitle(post.getTitle());
@@ -186,5 +216,17 @@ public class PostService {
         }
 
         return response;
+    }
+
+    private List<String> extractPictureUrls(List<Picture> pictures) {
+        List<String> urls = new ArrayList<>();
+
+        if (pictures != null) {
+            for (Picture picture : pictures) {
+                urls.add(picture.getPictureUrl());
+            }
+        }
+
+        return urls;
     }
 }
