@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 public class PostRequest {
     private Long userId;
-    private String pictureUrl;
+    private List<String> pictureUrls;
     private String location;
     private String caption;
     private String title;

@@ -8,6 +8,7 @@ import com.instagram.clone.repository.PictureRepository;
 import com.instagram.clone.repository.PostRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -26,7 +27,7 @@ public class PictureService {
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + pictureRequest.getPostId()));
 
         Picture picture = new Picture();
-        picture.setPictureURL(pictureRequest.getUrl());
+        picture.setPictureUrl(pictureRequest.getUrl());
         picture.setPost(post);
 
         Picture savedPicture = pictureRepository.save(picture);
@@ -41,7 +42,7 @@ public class PictureService {
     }
 
     public List<PictureResponse> getAll() {
-        List<PictureResponse> pictures = new java.util.ArrayList<>();
+        List<PictureResponse> pictures = new ArrayList<>();
 
         for (Picture picture : pictureRepository.findAll()) {
             pictures.add(mapToResponse(picture));
@@ -49,6 +50,7 @@ public class PictureService {
 
         return pictures;
     }
+
     public PictureResponse update(Long id, PictureRequest pictureRequest) {
         Picture existing = pictureRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Picture not found with id: " + id));
@@ -56,7 +58,7 @@ public class PictureService {
         Post post = postRepository.findById(pictureRequest.getPostId())
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + pictureRequest.getPostId()));
 
-        existing.setPictureURL(pictureRequest.getUrl());
+        existing.setPictureUrl(pictureRequest.getUrl());
         existing.setPost(post);
 
         Picture updatedPicture = pictureRepository.save(existing);
@@ -73,7 +75,7 @@ public class PictureService {
     private PictureResponse mapToResponse(Picture picture) {
         return new PictureResponse(
                 picture.getId(),
-                picture.getPictureURL(),
+                picture.getPictureUrl(),
                 picture.getPost() != null ? picture.getPost().getId() : null
         );
     }

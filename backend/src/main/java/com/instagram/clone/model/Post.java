@@ -16,48 +16,53 @@ import java.util.List;
 @Table(name = "posts")
 public class Post {
 
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-        @ManyToOne
-        @JoinColumn(name = "user_id",nullable = false)
-        private User user;
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-        @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-//        @Column
-        private List<Picture> pictures = new ArrayList<>();
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Picture> pictures = new ArrayList<>();
 
-        @Column
-        private String pictureUrl;
+    @Column
+    private String location;
 
-        @Column
-        private String location;
+    @Column
+    private String caption;
 
-        @Column
-        private String caption;
+    @Column
+    private String title;
 
-        @Column
-        private String title;
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
 
-        @Column(nullable = false)
-        private LocalDateTime createdAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "VARCHAR(255)")
+    private PostStatus status;
 
-        @Enumerated(EnumType.STRING)
-        @Column(nullable = false, columnDefinition = "VARCHAR(255)")
-        private PostStatus status;
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostVote> votes = new ArrayList<>();
 
-        @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-        private List<PostVote> votes = new ArrayList<>();
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments = new ArrayList<>();
 
-        @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-        private List<Comment> comments = new ArrayList<>();
+    @ManyToMany
+    @JoinTable(
+            name = "post_tags",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private List<Tag> tags = new ArrayList<>();
 
-        @ManyToMany
-        @JoinTable(name="post_tags",
-                joinColumns = @JoinColumn(name="post_id"),
-                inverseJoinColumns = @JoinColumn(name="tag_id"))
-        private List<Tag> tags = new ArrayList<>();
+    public void addPicture(Picture picture) {
+        pictures.add(picture);
+        picture.setPost(this);
     }
 
-
+    public void clearPictures() {
+        pictures.clear();
+    }
+}

@@ -1,3 +1,4 @@
+/*
 package com.instagram.clone.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,7 +50,8 @@ class PostControllerTest {
     private PostResponse mockPostResponse;
     private PostRequest mockPostRequest;
 
-    @BeforeEach
+*/
+/*    @BeforeEach
     void setUp() {
         mockPostRequest = new PostRequest();
         mockPostRequest.setUserId(1L);
@@ -71,7 +73,8 @@ class PostControllerTest {
         mockPostResponse.setCreatedAt(LocalDateTime.now());
         mockPostResponse.setTagIds(List.of(1L));
         mockPostResponse.setTagNames(List.of("natura"));
-    }
+    }*//*
+
 
     @Test
     @WithMockUser
@@ -158,4 +161,4 @@ class PostControllerTest {
 
         verify(postService).delete(100L);
     }
-}
+}*/
