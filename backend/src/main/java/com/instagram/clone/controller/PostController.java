@@ -23,8 +23,11 @@ public class PostController {
     }
 
     @GetMapping("/{id}")
-    public PostResponse getById(@PathVariable Long id) {
-        return postService.getById(id);
+    public PostResponse getById(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long currentUserId
+    ) {
+        return postService.getById(id, currentUserId);
     }
 
     @GetMapping

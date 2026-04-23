@@ -11,15 +11,25 @@ public class PostResponse {
     private Long id;
     private Long userId;
     private String username;
+
     private List<String> pictureUrls;
+
     private String location;
     private String caption;
     private String title;
+
     private LocalDateTime createdAt;
     private PostStatus status;
+
     private List<Long> tagIds;
     private List<String> tagNames;
-    private Long likeCount;
-    private Boolean likedByCurrentUser;
+
     private List<CommentResponse> comments;
+
+    private long likeCount;
+    private long dislikeCount;
+    private long voteCount;
+
+    private boolean likedByCurrentUser;
+    private boolean dislikedByCurrentUser;
 }

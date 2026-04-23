@@ -23,18 +23,26 @@ public class CommentController {
     }
 
     @GetMapping("/{id}")
-    public CommentResponse getById(@PathVariable Long id) {
-        return commentService.getById(id);
+    public CommentResponse getById(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long currentUserId
+    ) {
+        return commentService.getById(id, currentUserId);
     }
 
     @GetMapping
-    public List<CommentResponse> getAll() {
-        return commentService.getAll();
+    public List<CommentResponse> getAll(
+            @RequestParam(required = false) Long currentUserId
+    ) {
+        return commentService.getAll(currentUserId);
     }
 
     @GetMapping("/post/{postId}")
-    public List<CommentResponse> getByPostId(@PathVariable Long postId) {
-        return commentService.getByPostId(postId);
+    public List<CommentResponse> getByPostId(
+            @PathVariable Long postId,
+            @RequestParam(required = false) Long currentUserId
+    ) {
+        return commentService.getByPostId(postId, currentUserId);
     }
 
     @PutMapping("/{id}")

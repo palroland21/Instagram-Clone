@@ -23,6 +23,24 @@ function ChevronIcon({ dir }) {
     )
 }
 
+function XVoteIcon({ filled = false, size = 18 }) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={filled ? 3 : 2.3}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <line x1="6" y1="6" x2="18" y2="18" />
+            <line x1="18" y1="6" x2="6" y2="18" />
+        </svg>
+    )
+}
+
 function timeAgo(dateString) {
     const now = new Date()
     const created = new Date(dateString)
@@ -37,10 +55,27 @@ function timeAgo(dateString) {
     return `${diffDays}d`
 }
 
+function buildFileUrl(value) {
+    if (!value) return ''
+
+    if (
+        value.startsWith('http://') ||
+        value.startsWith('https://') ||
+        value.startsWith('data:')
+    ) {
+        return value
+    }
+
+    return `${API_BASE_URL}${value.startsWith('/') ? '' : '/'}${value}`
+}
+
 function PostCard({ post, currentUserId }) {
-    const [liked, setLiked] = useState(post.likedByCurrentUser || false)
+    const [liked, setLiked] = useState(Boolean(post.likedByCurrentUser))
+    const [disliked, setDisliked] = useState(Boolean(post.dislikedByCurrentUser))
     const [saved, setSaved] = useState(false)
-    const [likes, setLikes] = useState(post.likeCount || 0)
+    const [likeCount, setLikeCount] = useState(Number(post.likeCount) || 0)
+    const [dislikeCount, setDislikeCount] = useState(Number(post.dislikeCount) || 0)
+    const [voteCount, setVoteCount] = useState(Number(post.voteCount) || 0)
     const [comments, setComments] = useState(post.comments || [])
     const [commentText, setCommentText] = useState('')
     const [showComments, setShowComments] = useState(false)
@@ -49,17 +84,23 @@ function PostCard({ post, currentUserId }) {
 
     const token = localStorage.getItem('token')
 
-    // suport si pentru postari vechi cu pictureUrl, si pentru cele noi cu pictureUrls
     const images =
         Array.isArray(post.pictureUrls) && post.pictureUrls.length > 0
-            ? post.pictureUrls
+            ? post.pictureUrls.map(buildFileUrl)
             : post.pictureUrl
-                ? [post.pictureUrl]
+                ? [buildFileUrl(post.pictureUrl)]
                 : []
 
     const currentImage = images[currentImageIndex] || ''
 
-    const handleLike = async () => {
+    const sortedComments = [...comments].sort((a, b) => {
+        const byVotes = (Number(b.voteCount) || 0) - (Number(a.voteCount) || 0)
+        if (byVotes !== 0) return byVotes
+
+        return new Date(a.postedAt || 0) - new Date(b.postedAt || 0)
+    })
+
+    const handlePostVote = async (voteType) => {
         if (currentUserId === null || Number.isNaN(currentUserId)) {
             console.error('currentUserId missing')
             return
@@ -67,25 +108,68 @@ function PostCard({ post, currentUserId }) {
 
         try {
             const response = await fetch(
-                `${API_BASE_URL}/post-votes/toggle-like?userId=${currentUserId}&postId=${post.id}`,
+                `${API_BASE_URL}/post-votes/toggle?userId=${currentUserId}&postId=${post.id}&voteType=${voteType}`,
                 {
                     method: 'POST',
                     headers: { Authorization: `Bearer ${token}` },
                 }
             )
 
-            if (!response.ok) throw new Error('Failed to toggle like')
+            if (!response.ok) throw new Error('Failed to toggle post vote')
 
             const data = await response.json()
+
             setLiked(Boolean(data.liked))
-            setLikes(Number(data.likeCount) || 0)
+            setDisliked(Boolean(data.disliked))
+            setLikeCount(Number(data.likeCount) || 0)
+            setDislikeCount(Number(data.dislikeCount) || 0)
+            setVoteCount(Number(data.voteCount) || 0)
         } catch (error) {
-            console.error('Like error:', error)
+            console.error('Post vote error:', error)
+        }
+    }
+
+    const handleCommentVote = async (commentId, voteType) => {
+        if (currentUserId === null || Number.isNaN(currentUserId)) {
+            console.error('currentUserId missing')
+            return
+        }
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/comment-votes/toggle?userId=${currentUserId}&commentId=${commentId}&voteType=${voteType}`,
+                {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            )
+
+            if (!response.ok) throw new Error('Failed to toggle comment vote')
+
+            const data = await response.json()
+
+            setComments((prev) =>
+                prev.map((comment) =>
+                    Number(comment.id) === Number(commentId)
+                        ? {
+                            ...comment,
+                            likedByCurrentUser: Boolean(data.liked),
+                            dislikedByCurrentUser: Boolean(data.disliked),
+                            likeCount: Number(data.likeCount) || 0,
+                            dislikeCount: Number(data.dislikeCount) || 0,
+                            voteCount: Number(data.voteCount) || 0,
+                        }
+                        : comment
+                )
+            )
+        } catch (error) {
+            console.error('Comment vote error:', error)
         }
     }
 
     const handlePostComment = async () => {
         if (!commentText.trim()) return
+
         if (currentUserId === null || Number.isNaN(currentUserId)) {
             console.error('currentUserId missing')
             return
@@ -108,7 +192,40 @@ function PostCard({ post, currentUserId }) {
             if (!response.ok) throw new Error('Failed to post comment')
 
             const newComment = await response.json()
-            setComments((prev) => [...prev, newComment])
+
+            const enrichedComment = {
+                ...newComment,
+                userId:
+                    newComment.userId ??
+                    newComment.authorId ??
+                    newComment.user?.id ??
+                    newComment.author?.id ??
+                    currentUserId,
+                username:
+                    newComment.username ||
+                    newComment.author?.username ||
+                    'user',
+                userProfilePicture: buildFileUrl(
+                    newComment.userProfilePicture ||
+                    newComment.author?.profilePicture ||
+                    newComment.user?.profilePicture ||
+                    ''
+                ),
+                pictureUrl: buildFileUrl(
+                    newComment.pictureUrl ||
+                    newComment.picture ||
+                    newComment.imageUrl ||
+                    newComment.image ||
+                    ''
+                ),
+                likeCount: Number(newComment.likeCount) || 0,
+                dislikeCount: Number(newComment.dislikeCount) || 0,
+                voteCount: Number(newComment.voteCount) || 0,
+                likedByCurrentUser: Boolean(newComment.likedByCurrentUser),
+                dislikedByCurrentUser: Boolean(newComment.dislikedByCurrentUser),
+            }
+
+            setComments((prev) => [...prev, enrichedComment])
             setCommentText('')
             setShowComments(true)
         } catch (error) {
@@ -127,6 +244,7 @@ function PostCard({ post, currentUserId }) {
 
     const renderLine = (line, key) => {
         const parts = line.split(/(#\S+)/g)
+
         return (
             <span key={key}>
                 {parts.map((part, j) =>
@@ -162,7 +280,10 @@ function PostCard({ post, currentUserId }) {
             >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <img
-                        src={post.userProfilePicture || `https://i.pravatar.cc/150?u=${post.userId}`}
+                        src={
+                            buildFileUrl(post.userProfilePicture) ||
+                            `https://i.pravatar.cc/150?u=${post.userId}`
+                        }
                         alt={post.username}
                         style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
                     />
@@ -298,7 +419,7 @@ function PostCard({ post, currentUserId }) {
                 >
                     <div style={{ display: 'flex', gap: 16 }}>
                         <button
-                            onClick={handleLike}
+                            onClick={() => handlePostVote('LIKE')}
                             style={{
                                 background: 'none',
                                 border: 'none',
@@ -309,6 +430,21 @@ function PostCard({ post, currentUserId }) {
                             }}
                         >
                             <HeartIcon filled={liked} size={24} />
+                        </button>
+
+                        <button
+                            onClick={() => handlePostVote('DISLIKE')}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: 4,
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: disliked ? '#ff3040' : '#f5f5f5',
+                            }}
+                        >
+                            <XVoteIcon filled={disliked} size={22} />
                         </button>
 
                         <button
@@ -354,8 +490,21 @@ function PostCard({ post, currentUserId }) {
                     </button>
                 </div>
 
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#f5f5f5', marginBottom: 4 }}>
-                    {likes} {likes === 1 ? 'like' : 'likes'}
+                <div
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: '#f5f5f5',
+                        marginBottom: 6,
+                        flexWrap: 'wrap',
+                    }}
+                >
+                    <span>score: {voteCount}</span>
+                    <span>{likeCount} {likeCount === 1 ? 'like' : 'likes'}</span>
+                    <span>{dislikeCount} {dislikeCount === 1 ? 'dislike' : 'dislikes'}</span>
                 </div>
 
                 {fullText && (
@@ -384,23 +533,101 @@ function PostCard({ post, currentUserId }) {
 
                 {showComments && (
                     <div style={{ marginBottom: 8 }}>
-                        {comments.length === 0 ? (
+                        {sortedComments.length === 0 ? (
                             <div style={{ fontSize: 14, color: '#737373' }}>No comments yet.</div>
                         ) : (
-                            comments.map((c, i) => (
+                            sortedComments.map((c, i) => (
                                 <div
                                     key={c.id || i}
                                     style={{
-                                        fontSize: 14,
-                                        color: '#f5f5f5',
-                                        marginBottom: 4,
-                                        lineHeight: 1.4,
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        gap: 10,
+                                        marginBottom: 12,
                                     }}
                                 >
-                                    <span style={{ fontWeight: 700, marginRight: 6 }}>
-                                        {c.username || 'user'}
-                                    </span>
-                                    <span>{c.text}</span>
+                                    <img
+                                        src={
+                                            buildFileUrl(c.userProfilePicture) ||
+                                            `https://i.pravatar.cc/100?u=${c.userId || c.username || i}`
+                                        }
+                                        alt={c.username || 'user'}
+                                        style={{
+                                            width: 28,
+                                            height: 28,
+                                            borderRadius: '50%',
+                                            objectFit: 'cover',
+                                            flexShrink: 0,
+                                            marginTop: 2,
+                                        }}
+                                    />
+
+                                    <div style={{ flex: 1 }}>
+                                        <div
+                                            style={{
+                                                fontSize: 14,
+                                                color: '#f5f5f5',
+                                                lineHeight: 1.4,
+                                                wordBreak: 'break-word',
+                                            }}
+                                        >
+                                            <span style={{ fontWeight: 700, marginRight: 6 }}>
+                                                {c.username || 'user'}
+                                            </span>
+                                            <span>{c.text}</span>
+                                        </div>
+
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 12,
+                                                marginTop: 6,
+                                                flexWrap: 'wrap',
+                                            }}
+                                        >
+                                            <button
+                                                onClick={() => handleCommentVote(c.id, 'LIKE')}
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    padding: 0,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                }}
+                                            >
+                                                <HeartIcon filled={Boolean(c.likedByCurrentUser)} size={13} />
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleCommentVote(c.id, 'DISLIKE')}
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    padding: 0,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    color: Boolean(c.dislikedByCurrentUser) ? '#ff3040' : '#f5f5f5',
+                                                }}
+                                            >
+                                                <XVoteIcon filled={Boolean(c.dislikedByCurrentUser)} size={13} />
+                                            </button>
+
+                                            <span style={{ fontSize: 12, color: '#737373' }}>
+                                                score: {Number(c.voteCount) || 0}
+                                            </span>
+
+                                            <span style={{ fontSize: 12, color: '#737373' }}>
+                                                {Number(c.likeCount) || 0} likes
+                                            </span>
+
+                                            <span style={{ fontSize: 12, color: '#737373' }}>
+                                                {Number(c.dislikeCount) || 0} dislikes
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             ))
                         )}

@@ -4,8 +4,10 @@ import com.instagram.clone.dto.request.PostRequest;
 import com.instagram.clone.dto.response.CommentResponse;
 import com.instagram.clone.dto.response.PostResponse;
 import com.instagram.clone.model.Comment;
+import com.instagram.clone.model.CommentVote;
 import com.instagram.clone.model.Picture;
 import com.instagram.clone.model.Post;
+import com.instagram.clone.model.PostVote;
 import com.instagram.clone.model.Tag;
 import com.instagram.clone.model.User;
 import com.instagram.clone.model.enums.PostStatus;
@@ -63,10 +65,10 @@ public class PostService {
         return mapToResponse(saved, request.getUserId());
     }
 
-    public PostResponse getById(Long id) {
+    public PostResponse getById(Long id, Long currentUserId) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
-        return mapToResponse(post, null);
+        return mapToResponse(post, currentUserId);
     }
 
     public List<PostResponse> getAll() {
@@ -192,28 +194,76 @@ public class PostService {
         List<CommentResponse> commentResponses = new ArrayList<>();
         for (Comment comment : comments) {
             CommentResponse cr = new CommentResponse();
+
+            int commentLikeCount = 0;
+            int commentDislikeCount = 0;
+            boolean commentLikedByCurrentUser = false;
+            boolean commentDislikedByCurrentUser = false;
+
+            for (CommentVote vote : comment.getVotes()) {
+                if (vote.getVoteType() == VoteType.LIKE) {
+                    commentLikeCount++;
+                } else if (vote.getVoteType() == VoteType.DISLIKE) {
+                    commentDislikeCount++;
+                }
+
+                if (currentUserId != null
+                        && vote.getUser() != null
+                        && currentUserId.equals(vote.getUser().getId())) {
+                    if (vote.getVoteType() == VoteType.LIKE) {
+                        commentLikedByCurrentUser = true;
+                    } else if (vote.getVoteType() == VoteType.DISLIKE) {
+                        commentDislikedByCurrentUser = true;
+                    }
+                }
+            }
+
             cr.setId(comment.getId());
             cr.setUserId(comment.getUser().getId());
             cr.setUsername(comment.getUser().getUsername());
+            cr.setUserProfilePicture(comment.getUser().getProfilePicture());
             cr.setPostId(post.getId());
             cr.setText(comment.getText());
             cr.setPictureUrl(comment.getPictureUrl());
             cr.setPostedAt(comment.getPostedAt());
+            cr.setLikeCount(commentLikeCount);
+            cr.setDislikeCount(commentDislikeCount);
+            cr.setVoteCount(commentLikeCount - commentDislikeCount);
+            cr.setLikedByCurrentUser(commentLikedByCurrentUser);
+            cr.setDislikedByCurrentUser(commentDislikedByCurrentUser);
+
             commentResponses.add(cr);
         }
         response.setComments(commentResponses);
 
-        long likeCount = postVoteRepository.countByPostIdAndVoteType(post.getId(), VoteType.LIKE);
-        response.setLikeCount(likeCount);
+        long likeCount = 0;
+        long dislikeCount = 0;
+        boolean likedByCurrentUser = false;
+        boolean dislikedByCurrentUser = false;
 
-        if (currentUserId != null) {
-            boolean liked = postVoteRepository.findByUserIdAndPostId(currentUserId, post.getId())
-                    .map(v -> v.getVoteType() == VoteType.LIKE)
-                    .orElse(false);
-            response.setLikedByCurrentUser(liked);
-        } else {
-            response.setLikedByCurrentUser(false);
+        for (PostVote vote : post.getVotes()) {
+            if (vote.getVoteType() == VoteType.LIKE) {
+                likeCount++;
+            } else if (vote.getVoteType() == VoteType.DISLIKE) {
+                dislikeCount++;
+            }
+
+            if (currentUserId != null
+                    && vote.getUser() != null
+                    && currentUserId.equals(vote.getUser().getId())) {
+                if (vote.getVoteType() == VoteType.LIKE) {
+                    likedByCurrentUser = true;
+                } else if (vote.getVoteType() == VoteType.DISLIKE) {
+                    dislikedByCurrentUser = true;
+                }
+            }
         }
+
+        response.setLikeCount(likeCount);
+        response.setDislikeCount(dislikeCount);
+        response.setVoteCount(likeCount - dislikeCount);
+        response.setLikedByCurrentUser(likedByCurrentUser);
+        response.setDislikedByCurrentUser(dislikedByCurrentUser);
 
         return response;
     }
