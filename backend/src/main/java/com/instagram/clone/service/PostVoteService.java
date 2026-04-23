@@ -1,5 +1,6 @@
 package com.instagram.clone.service;
 
+import com.instagram.clone.dto.response.PostVoteResponse;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.PostVote;
 import com.instagram.clone.model.User;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -71,5 +73,17 @@ public class PostVoteService {
         return postVoteRepository.findByUserIdAndPostId(userId, postId)
                 .map(v -> v.getVoteType() == VoteType.LIKE)
                 .orElse(false);
+    }
+
+    public List<PostVoteResponse> getAll() {
+        return ((List<PostVote>) postVoteRepository.findAll())
+                .stream()
+                .map(vote -> new PostVoteResponse(
+                        vote.getId(),
+                        vote.getUser().getId(),
+                        vote.getPost().getId(),
+                        vote.getVoteType()
+                ))
+                .toList();
     }
 }

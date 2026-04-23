@@ -1,9 +1,11 @@
 package com.instagram.clone.controller;
 
+import com.instagram.clone.dto.response.PostVoteResponse;
 import com.instagram.clone.service.PostVoteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -26,5 +28,10 @@ public class PostVoteController {
     @GetMapping("/liked")
     public boolean isLikedByUser(@RequestParam Long userId, @RequestParam Long postId) {
         return postVoteService.isLikedByUser(userId, postId);
+    }
+
+    @GetMapping
+    public List<PostVoteResponse> getAll() {
+        return postVoteService.getAll();
     }
 }
