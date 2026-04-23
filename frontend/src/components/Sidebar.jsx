@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import {
     HomeIcon,
     SearchIcon,
-    ExploreIcon,
     MessagesIcon,
     HeartIcon,
     PlusIcon,
@@ -69,7 +68,6 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
     const navItems = [
         { id: 'home', label: 'Home', path: '/home', icon: <HomeIcon filled={activeItem === 'home'} /> },
         { id: 'search', label: 'Search', path: '/search', icon: <SearchIcon /> },
-        { id: 'explore', label: 'Explore', icon: <ExploreIcon /> },
         { id: 'messages', label: 'Messages', icon: <MessagesIcon /> },
         { id: 'notifications', label: 'Notifications', icon: <HeartIcon /> },
         { id: 'create', label: 'Create', icon: <PlusIcon />, action: () => setShowCreateModal(true) },
