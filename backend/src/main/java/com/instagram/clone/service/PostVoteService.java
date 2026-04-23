@@ -1,97 +1,75 @@
 package com.instagram.clone.service;
 
-import com.instagram.clone.dto.request.PostVoteRequest;
-import com.instagram.clone.dto.response.PostVoteResponse;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.PostVote;
 import com.instagram.clone.model.User;
+import com.instagram.clone.model.enums.VoteType;
 import com.instagram.clone.repository.PostRepository;
 import com.instagram.clone.repository.PostVoteRepository;
 import com.instagram.clone.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class PostVoteService {
 
     private final PostVoteRepository postVoteRepository;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
 
-    public PostVoteService(PostVoteRepository postVoteRepository,
-                           UserRepository userRepository,
-                           PostRepository postRepository) {
-        this.postVoteRepository = postVoteRepository;
-        this.userRepository = userRepository;
-        this.postRepository = postRepository;
-    }
+    public Map<String, Object> toggleLike(Long userId, Long postId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-    public PostVoteResponse create(PostVoteRequest postVoteRequest) {
-        User user = userRepository.findById(postVoteRequest.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + postVoteRequest.getUserId()));
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        Post post = postRepository.findById(postVoteRequest.getPostId())
-                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postVoteRequest.getPostId()));
+        var existingVote = postVoteRepository.findByUserIdAndPostId(userId, postId);
 
-        PostVote postVote = new PostVote();
-        postVote.setUser(user);
-        postVote.setPost(post);
-        postVote.setVoteType(postVoteRequest.getVoteType());
+        if (existingVote.isPresent()) {
+            PostVote vote = existingVote.get();
 
-        PostVote savedPostVote = postVoteRepository.save(postVote);
-        return mapToResponse(savedPostVote);
-    }
+            if (vote.getVoteType() == VoteType.LIKE) {
+                postVoteRepository.delete(vote);
 
-    public PostVoteResponse getById(Long id) {
-        PostVote postVote = postVoteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("PostVote not found with id: " + id));
+                Map<String, Object> response = new HashMap<>();
+                response.put("liked", false);
+                response.put("likeCount", getLikeCount(postId));
+                return response;
+            } else {
+                vote.setVoteType(VoteType.LIKE);
+                postVoteRepository.save(vote);
 
-        return mapToResponse(postVote);
-    }
-
-    public List<PostVoteResponse> getAll() {
-        List<PostVoteResponse> votes = new ArrayList<>();
-
-        for (PostVote postVote : postVoteRepository.findAll()) {
-            votes.add(mapToResponse(postVote));
+                Map<String, Object> response = new HashMap<>();
+                response.put("liked", true);
+                response.put("likeCount", getLikeCount(postId));
+                return response;
+            }
         }
 
-        return votes;
+        PostVote newVote = new PostVote();
+        newVote.setUser(user);
+        newVote.setPost(post);
+        newVote.setVoteType(VoteType.LIKE);
+        postVoteRepository.save(newVote);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("liked", true);
+        response.put("likeCount", getLikeCount(postId));
+        return response;
     }
 
-    public PostVoteResponse update(Long id, PostVoteRequest postVoteRequest) {
-        PostVote existing = postVoteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("PostVote not found with id: " + id));
-
-        User user = userRepository.findById(postVoteRequest.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + postVoteRequest.getUserId()));
-
-        Post post = postRepository.findById(postVoteRequest.getPostId())
-                .orElseThrow(() -> new RuntimeException("Post not found with id: " + postVoteRequest.getPostId()));
-
-        existing.setUser(user);
-        existing.setPost(post);
-        existing.setVoteType(postVoteRequest.getVoteType());
-
-        PostVote updatedPostVote = postVoteRepository.save(existing);
-        return mapToResponse(updatedPostVote);
+    public long getLikeCount(Long postId) {
+        return postVoteRepository.countByPostIdAndVoteType(postId, VoteType.LIKE);
     }
 
-    public void delete(Long id) {
-        PostVote postVote = postVoteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("PostVote not found with id: " + id));
-
-        postVoteRepository.delete(postVote);
-    }
-
-    private PostVoteResponse mapToResponse(PostVote postVote) {
-        return new PostVoteResponse(
-                postVote.getId(),
-                postVote.getUser() != null ? postVote.getUser().getId() : null,
-                postVote.getPost() != null ? postVote.getPost().getId() : null,
-                postVote.getVoteType()
-        );
+    public boolean isLikedByUser(Long userId, Long postId) {
+        return postVoteRepository.findByUserIdAndPostId(userId, postId)
+                .map(v -> v.getVoteType() == VoteType.LIKE)
+                .orElse(false);
     }
 }

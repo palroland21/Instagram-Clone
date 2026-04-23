@@ -1,12 +1,17 @@
 package com.instagram.clone.service;
 
 import com.instagram.clone.dto.request.PostRequest;
+import com.instagram.clone.dto.response.CommentResponse;
 import com.instagram.clone.dto.response.PostResponse;
+import com.instagram.clone.model.Comment;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.Tag;
 import com.instagram.clone.model.User;
 import com.instagram.clone.model.enums.PostStatus;
+import com.instagram.clone.model.enums.VoteType;
+import com.instagram.clone.repository.CommentRepository;
 import com.instagram.clone.repository.PostRepository;
+import com.instagram.clone.repository.PostVoteRepository;
 import com.instagram.clone.repository.TagRepository;
 import com.instagram.clone.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -21,13 +26,19 @@ public class PostService {
     private final PostRepository postRepository;
     private final TagRepository tagRepository;
     private final UserRepository userRepository;
+    private final CommentRepository commentRepository;
+    private final PostVoteRepository postVoteRepository;
 
     public PostService(PostRepository postRepository,
                        TagRepository tagRepository,
-                       UserRepository userRepository) {
+                       UserRepository userRepository,
+                       CommentRepository commentRepository,
+                       PostVoteRepository postVoteRepository) {
         this.postRepository = postRepository;
         this.tagRepository = tagRepository;
         this.userRepository = userRepository;
+        this.commentRepository = commentRepository;
+        this.postVoteRepository = postVoteRepository;
     }
 
     public PostResponse create(PostRequest request) {
@@ -45,22 +56,28 @@ public class PostService {
         post.setTags(getOrCreateTags(request.getTagNames()));
 
         Post saved = postRepository.save(post);
-        return mapToResponse(saved);
+        return mapToResponse(saved, request.getUserId());
     }
 
     public PostResponse getById(Long id) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
-        return mapToResponse(post);
+        return mapToResponse(post, null);
     }
 
     public List<PostResponse> getAll() {
         List<PostResponse> responses = new ArrayList<>();
-
         for (Post post : postRepository.findAll()) {
-            responses.add(mapToResponse(post));
+            responses.add(mapToResponse(post, null));
         }
+        return responses;
+    }
 
+    public List<PostResponse> getAll(Long currentUserId) {
+        List<PostResponse> responses = new ArrayList<>();
+        for (Post post : postRepository.findAll()) {
+            responses.add(mapToResponse(post, currentUserId));
+        }
         return responses;
     }
 
@@ -84,7 +101,7 @@ public class PostService {
         existing.setTags(getOrCreateTags(request.getTagNames()));
 
         Post updated = postRepository.save(existing);
-        return mapToResponse(updated);
+        return mapToResponse(updated, request.getUserId());
     }
 
     public void delete(Long id) {
@@ -116,7 +133,7 @@ public class PostService {
         return tags;
     }
 
-    private PostResponse mapToResponse(Post post) {
+    private PostResponse mapToResponse(Post post, Long currentUserId) {
         PostResponse response = new PostResponse();
         response.setId(post.getId());
         response.setUserId(post.getUser().getId());
@@ -140,6 +157,33 @@ public class PostService {
 
         response.setTagIds(tagIds);
         response.setTagNames(tagNames);
+
+        List<Comment> comments = commentRepository.findByPostId(post.getId());
+        List<CommentResponse> commentResponses = new ArrayList<>();
+        for (Comment comment : comments) {
+            CommentResponse cr = new CommentResponse();
+            cr.setId(comment.getId());
+            cr.setUserId(comment.getUser().getId());
+            cr.setUsername(comment.getUser().getUsername());
+            cr.setPostId(post.getId());
+            cr.setText(comment.getText());
+            cr.setPictureUrl(comment.getPictureUrl());
+            cr.setPostedAt(comment.getPostedAt());
+            commentResponses.add(cr);
+        }
+        response.setComments(commentResponses);
+
+        long likeCount = postVoteRepository.countByPostIdAndVoteType(post.getId(), VoteType.LIKE);
+        response.setLikeCount(likeCount);
+
+        if (currentUserId != null) {
+            boolean liked = postVoteRepository.findByUserIdAndPostId(currentUserId, post.getId())
+                    .map(v -> v.getVoteType() == VoteType.LIKE)
+                    .orElse(false);
+            response.setLikedByCurrentUser(liked);
+        } else {
+            response.setLikedByCurrentUser(false);
+        }
 
         return response;
     }

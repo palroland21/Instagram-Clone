@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-const API_BASE_URL = 'http://localhost:9090/auth'
+const AUTH_API_BASE_URL = 'http://localhost:9090/auth'
+const UPLOAD_API_BASE_URL = 'http://localhost:9090/uploads'
 
 function RegisterForm({ setMessage, setError, goToLogin }) {
     const navigate = useNavigate()
@@ -16,12 +17,20 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
         profilePicture: '',
     })
 
+    const [profilePictureFile, setProfilePictureFile] = useState(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
     const handleChange = (e) => {
         const { name, value } = e.target
         setRegisterData((prev) => ({
             ...prev,
             [name]: value,
         }))
+    }
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0] || null
+        setProfilePictureFile(file)
     }
 
     const handleSubmit = async (e) => {
@@ -34,17 +43,41 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
             return
         }
 
-        const requestBody = {
-            username: registerData.username,
-            email: registerData.email,
-            password: registerData.password,
-            fullName: registerData.fullName,
-            bio: registerData.bio,
-            profilePicture: registerData.profilePicture,
-        }
+        setIsSubmitting(true)
 
         try {
-            const response = await fetch(`${API_BASE_URL}/register`, {
+            let uploadedImageUrl = ''
+
+            if (profilePictureFile) {
+                const formData = new FormData()
+                formData.append('file', profilePictureFile)
+
+                const uploadResponse = await fetch(`${UPLOAD_API_BASE_URL}/image`, {
+                    method: 'POST',
+                    body: formData,
+                })
+
+                const uploadData = await uploadResponse.json().catch(() => null)
+
+                if (!uploadResponse.ok) {
+                    setError(uploadData?.message || 'Image upload failed!')
+                    setIsSubmitting(false)
+                    return
+                }
+
+                uploadedImageUrl = uploadData.url
+            }
+
+            const requestBody = {
+                username: registerData.username,
+                email: registerData.email,
+                password: registerData.password,
+                fullName: registerData.fullName,
+                bio: registerData.bio,
+                profilePicture: uploadedImageUrl,
+            }
+
+            const response = await fetch(`${AUTH_API_BASE_URL}/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -56,10 +89,14 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
 
             if (!response.ok) {
                 setError(typeof data === 'string' ? data : 'Register failed!')
+                setIsSubmitting(false)
                 return
             }
 
             localStorage.setItem('token', data.token)
+            localStorage.setItem('userId', data.userId)
+            localStorage.setItem('username', data.username)
+
             setMessage('Registration successful!')
 
             setRegisterData({
@@ -72,9 +109,12 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
                 profilePicture: '',
             })
 
+            setProfilePictureFile(null)
             navigate('/home')
         } catch {
             setError('Cannot connect to backend.')
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -134,15 +174,13 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
             />
 
             <input
-                type="text"
-                name="profilePicture"
-                placeholder="Profile picture URL"
-                value={registerData.profilePicture}
-                onChange={handleChange}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
             />
 
-            <button type="submit" className="submit-btn">
-                Register
+            <button type="submit" className="submit-btn" disabled={isSubmitting}>
+                {isSubmitting ? 'Registering...' : 'Register'}
             </button>
 
             <p className="bottom-text">
@@ -158,8 +196,8 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
                     role="button"
                     tabIndex={0}
                 >
-          Login
-        </span>
+                    Login
+                </span>
             </p>
         </form>
     )

@@ -3,9 +3,13 @@ package com.instagram.clone.service;
 import com.instagram.clone.dto.request.PostRequest;
 import com.instagram.clone.dto.response.PostResponse;
 import com.instagram.clone.model.Post;
+import com.instagram.clone.model.Tag;
 import com.instagram.clone.model.User;
 import com.instagram.clone.model.enums.PostStatus;
+import com.instagram.clone.model.enums.VoteType;
+import com.instagram.clone.repository.CommentRepository;
 import com.instagram.clone.repository.PostRepository;
+import com.instagram.clone.repository.PostVoteRepository;
 import com.instagram.clone.repository.TagRepository;
 import com.instagram.clone.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,18 +39,29 @@ class PostServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private CommentRepository commentRepository;
+
+    @Mock
+    private PostVoteRepository postVoteRepository;
+
     @InjectMocks
     private PostService postService;
 
     private User testUser;
     private Post testPost;
     private PostRequest testPostRequest;
+    private Tag testTag;
 
     @BeforeEach
     void setUp() {
         testUser = new User();
         testUser.setId(1L);
         testUser.setUsername("andrei_m");
+
+        testTag = new Tag();
+        testTag.setId(1L);
+        testTag.setName("travel");
 
         testPost = new Post();
         testPost.setId(1L);
@@ -58,6 +72,7 @@ class PostServiceTest {
         testPost.setCreatedAt(LocalDateTime.now());
         testPost.setStatus(PostStatus.JUST_POSTED);
         testPost.setUser(testUser);
+        testPost.setTags(List.of(testTag));
 
         testPostRequest = new PostRequest();
         testPostRequest.setUserId(1L);
@@ -66,12 +81,17 @@ class PostServiceTest {
         testPostRequest.setLocation("Bucegi, Romania");
         testPostRequest.setPictureUrl("https://example.com/post.jpg");
         testPostRequest.setStatus(PostStatus.JUST_POSTED);
+        testPostRequest.setTagNames(List.of("travel"));
     }
 
     @Test
     void create_ShouldSetStatusAndSavePost_WhenSuccessful() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(tagRepository.findByName("travel")).thenReturn(Optional.of(testTag));
         when(postRepository.save(any(Post.class))).thenReturn(testPost);
+        when(commentRepository.findByPostId(1L)).thenReturn(List.of());
+        when(postVoteRepository.countByPostIdAndVoteType(1L, VoteType.LIKE)).thenReturn(0L);
+        when(postVoteRepository.findByUserIdAndPostId(1L, 1L)).thenReturn(Optional.empty());
 
         PostResponse result = postService.create(testPostRequest);
 
@@ -85,7 +105,6 @@ class PostServiceTest {
 
         verify(userRepository).findById(1L);
         verify(postRepository).save(any(Post.class));
-        verifyNoInteractions(tagRepository);
     }
 
     @Test
@@ -105,6 +124,8 @@ class PostServiceTest {
     @Test
     void getById_ShouldReturnPost_WhenExists() {
         when(postRepository.findById(1L)).thenReturn(Optional.of(testPost));
+        when(commentRepository.findByPostId(1L)).thenReturn(List.of());
+        when(postVoteRepository.countByPostIdAndVoteType(1L, VoteType.LIKE)).thenReturn(0L);
 
         PostResponse result = postService.getById(1L);
 
@@ -131,6 +152,8 @@ class PostServiceTest {
     void getAll_ShouldReturnListOfPosts() {
         Iterable<Post> posts = List.of(testPost);
         when(postRepository.findAll()).thenReturn(posts);
+        when(commentRepository.findByPostId(1L)).thenReturn(List.of());
+        when(postVoteRepository.countByPostIdAndVoteType(1L, VoteType.LIKE)).thenReturn(0L);
 
         List<PostResponse> result = postService.getAll();
 
@@ -150,6 +173,7 @@ class PostServiceTest {
         updatedInfo.setLocation("Locatie Noua");
         updatedInfo.setPictureUrl("https://example.com/updated.jpg");
         updatedInfo.setStatus(PostStatus.FIRST_REACTIONS);
+        updatedInfo.setTagNames(List.of("travel"));
 
         Post updatedPost = new Post();
         updatedPost.setId(1L);
@@ -160,10 +184,15 @@ class PostServiceTest {
         updatedPost.setStatus(PostStatus.FIRST_REACTIONS);
         updatedPost.setCreatedAt(LocalDateTime.now());
         updatedPost.setUser(testUser);
+        updatedPost.setTags(List.of(testTag));
 
         when(postRepository.findById(1L)).thenReturn(Optional.of(testPost));
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(tagRepository.findByName("travel")).thenReturn(Optional.of(testTag));
         when(postRepository.save(any(Post.class))).thenReturn(updatedPost);
+        when(commentRepository.findByPostId(1L)).thenReturn(List.of());
+        when(postVoteRepository.countByPostIdAndVoteType(1L, VoteType.LIKE)).thenReturn(0L);
+        when(postVoteRepository.findByUserIdAndPostId(1L, 1L)).thenReturn(Optional.empty());
 
         PostResponse result = postService.update(1L, updatedInfo);
 
@@ -176,7 +205,6 @@ class PostServiceTest {
         verify(postRepository).findById(1L);
         verify(userRepository).findById(1L);
         verify(postRepository).save(any(Post.class));
-        verifyNoInteractions(tagRepository);
     }
 
     @Test

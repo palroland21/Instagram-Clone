@@ -11,6 +11,7 @@ import com.instagram.clone.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -53,9 +54,19 @@ public class CommentService {
     }
 
     public List<CommentResponse> getAll() {
-        List<CommentResponse> responses = new java.util.ArrayList<>();
+        List<CommentResponse> responses = new ArrayList<>();
 
         for (Comment comment : commentRepository.findAll()) {
+            responses.add(mapToResponse(comment));
+        }
+
+        return responses;
+    }
+
+    public List<CommentResponse> getByPostId(Long postId) {
+        List<CommentResponse> responses = new ArrayList<>();
+
+        for (Comment comment : commentRepository.findByPostId(postId)) {
             responses.add(mapToResponse(comment));
         }
 
@@ -76,7 +87,7 @@ public class CommentService {
         comment.setPost(post);
         comment.setText(request.getText());
         comment.setPictureUrl(request.getPictureUrl());
-        comment.setPostedAt(request.getPostedAt());
+        comment.setPostedAt(request.getPostedAt() != null ? request.getPostedAt() : comment.getPostedAt());
 
         Comment updated = commentRepository.save(comment);
         return mapToResponse(updated);

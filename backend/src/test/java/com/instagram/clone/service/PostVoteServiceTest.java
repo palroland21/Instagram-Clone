@@ -1,7 +1,5 @@
 package com.instagram.clone.service;
 
-import com.instagram.clone.dto.request.PostVoteRequest;
-import com.instagram.clone.dto.response.PostVoteResponse;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.PostVote;
 import com.instagram.clone.model.User;
@@ -16,8 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,176 +37,152 @@ class PostVoteServiceTest {
     private PostVoteService postVoteService;
 
     private User testUser;
+    private User postAuthor;
     private Post testPost;
     private PostVote testPostVote;
-    private PostVoteRequest testPostVoteRequest;
 
     @BeforeEach
     void setUp() {
         testUser = new User();
         testUser.setId(1L);
 
+        postAuthor = new User();
+        postAuthor.setId(2L);
+
         testPost = new Post();
-        testPost.setId(1L);
+        testPost.setId(10L);
+        testPost.setUser(postAuthor);
 
         testPostVote = new PostVote();
-        testPostVote.setId(1L);
+        testPostVote.setId(100L);
         testPostVote.setUser(testUser);
         testPostVote.setPost(testPost);
         testPostVote.setVoteType(VoteType.LIKE);
-
-        testPostVoteRequest = new PostVoteRequest();
-        testPostVoteRequest.setUserId(1L);
-        testPostVoteRequest.setPostId(1L);
-        testPostVoteRequest.setVoteType(VoteType.LIKE);
     }
 
     @Test
-    void create_ShouldReturnSavedVote_WhenUserAndPostExist() {
+    void toggleLike_ShouldCreateLike_WhenVoteDoesNotExist() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(postRepository.findById(1L)).thenReturn(Optional.of(testPost));
-        when(postVoteRepository.save(any(PostVote.class))).thenReturn(testPostVote);
+        when(postRepository.findById(10L)).thenReturn(Optional.of(testPost));
+        when(postVoteRepository.findByUserIdAndPostId(1L, 10L)).thenReturn(Optional.empty());
+        when(postVoteRepository.countByPostIdAndVoteType(10L, VoteType.LIKE)).thenReturn(1L);
 
-        PostVoteResponse result = postVoteService.create(testPostVoteRequest);
+        Map<String, Object> result = postVoteService.toggleLike(1L, 10L);
 
         assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals(1L, result.getUserId());
-        assertEquals(1L, result.getPostId());
-        assertEquals(VoteType.LIKE, result.getVoteType());
+        assertEquals(true, result.get("liked"));
+        assertEquals(1L, result.get("likeCount"));
 
         verify(userRepository).findById(1L);
-        verify(postRepository).findById(1L);
+        verify(postRepository).findById(10L);
+        verify(postVoteRepository).findByUserIdAndPostId(1L, 10L);
         verify(postVoteRepository).save(any(PostVote.class));
     }
 
     @Test
-    void create_ShouldThrowException_WhenUserNotFound() {
+    void toggleLike_ShouldDeleteLike_WhenLikeAlreadyExists() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(postRepository.findById(10L)).thenReturn(Optional.of(testPost));
+        when(postVoteRepository.findByUserIdAndPostId(1L, 10L)).thenReturn(Optional.of(testPostVote));
+        when(postVoteRepository.countByPostIdAndVoteType(10L, VoteType.LIKE)).thenReturn(0L);
+
+        Map<String, Object> result = postVoteService.toggleLike(1L, 10L);
+
+        assertNotNull(result);
+        assertEquals(false, result.get("liked"));
+        assertEquals(0L, result.get("likeCount"));
+
+        verify(postVoteRepository).delete(testPostVote);
+        verify(postVoteRepository, never()).save(any(PostVote.class));
+    }
+
+    @Test
+    void toggleLike_ShouldConvertDislikeToLike_WhenVoteExistsButIsDislike() {
+        testPostVote.setVoteType(VoteType.DISLIKE);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(postRepository.findById(10L)).thenReturn(Optional.of(testPost));
+        when(postVoteRepository.findByUserIdAndPostId(1L, 10L)).thenReturn(Optional.of(testPostVote));
+        when(postVoteRepository.countByPostIdAndVoteType(10L, VoteType.LIKE)).thenReturn(1L);
+
+        Map<String, Object> result = postVoteService.toggleLike(1L, 10L);
+
+        assertNotNull(result);
+        assertEquals(true, result.get("liked"));
+        assertEquals(1L, result.get("likeCount"));
+        assertEquals(VoteType.LIKE, testPostVote.getVoteType());
+
+        verify(postVoteRepository).save(testPostVote);
+        verify(postVoteRepository, never()).delete(any(PostVote.class));
+    }
+
+    @Test
+    void toggleLike_ShouldThrowException_WhenUserNotFound() {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
-                () -> postVoteService.create(testPostVoteRequest)
+                () -> postVoteService.toggleLike(1L, 10L)
         );
 
-        assertEquals("User not found with id: 1", exception.getMessage());
+        assertEquals("User not found", exception.getMessage());
+
+        verify(postRepository, never()).findById(any());
         verify(postVoteRepository, never()).save(any());
     }
 
     @Test
-    void create_ShouldThrowException_WhenPostNotFound() {
+    void toggleLike_ShouldThrowException_WhenPostNotFound() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(postRepository.findById(1L)).thenReturn(Optional.empty());
+        when(postRepository.findById(10L)).thenReturn(Optional.empty());
 
         RuntimeException exception = assertThrows(
                 RuntimeException.class,
-                () -> postVoteService.create(testPostVoteRequest)
+                () -> postVoteService.toggleLike(1L, 10L)
         );
 
-        assertEquals("Post not found with id: 1", exception.getMessage());
+        assertEquals("Post not found", exception.getMessage());
+
         verify(postVoteRepository, never()).save(any());
-    }
-
-    @Test
-    void getById_ShouldReturnVote_WhenExists() {
-        when(postVoteRepository.findById(1L)).thenReturn(Optional.of(testPostVote));
-
-        PostVoteResponse result = postVoteService.getById(1L);
-
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals(1L, result.getUserId());
-        assertEquals(1L, result.getPostId());
-        assertEquals(VoteType.LIKE, result.getVoteType());
-    }
-
-    @Test
-    void getById_ShouldThrowException_WhenVoteNotFound() {
-        when(postVoteRepository.findById(1L)).thenReturn(Optional.empty());
-
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> postVoteService.getById(1L)
-        );
-
-        assertEquals("PostVote not found with id: 1", exception.getMessage());
-    }
-
-    @Test
-    void getAll_ShouldReturnAllVotes() {
-        List<PostVote> votes = new ArrayList<>();
-        votes.add(testPostVote);
-
-        when(postVoteRepository.findAll()).thenReturn(votes);
-
-        List<PostVoteResponse> result = postVoteService.getAll();
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(1L, result.get(0).getId());
-        assertEquals(1L, result.get(0).getUserId());
-        assertEquals(1L, result.get(0).getPostId());
-        assertEquals(VoteType.LIKE, result.get(0).getVoteType());
-    }
-
-    @Test
-    void update_ShouldUpdateFieldsAndSave() {
-        User newUser = new User();
-        newUser.setId(2L);
-
-        Post newPost = new Post();
-        newPost.setId(2L);
-
-        PostVote updatedSavedVote = new PostVote();
-        updatedSavedVote.setId(1L);
-        updatedSavedVote.setUser(newUser);
-        updatedSavedVote.setPost(newPost);
-        updatedSavedVote.setVoteType(VoteType.DISLIKE);
-
-        PostVoteRequest updateRequest = new PostVoteRequest();
-        updateRequest.setUserId(2L);
-        updateRequest.setPostId(2L);
-        updateRequest.setVoteType(VoteType.DISLIKE);
-
-        when(postVoteRepository.findById(1L)).thenReturn(Optional.of(testPostVote));
-        when(userRepository.findById(2L)).thenReturn(Optional.of(newUser));
-        when(postRepository.findById(2L)).thenReturn(Optional.of(newPost));
-        when(postVoteRepository.save(any(PostVote.class))).thenReturn(updatedSavedVote);
-
-        PostVoteResponse result = postVoteService.update(1L, updateRequest);
-
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals(2L, result.getUserId());
-        assertEquals(2L, result.getPostId());
-        assertEquals(VoteType.DISLIKE, result.getVoteType());
-
-        verify(postVoteRepository).findById(1L);
-        verify(userRepository).findById(2L);
-        verify(postRepository).findById(2L);
-        verify(postVoteRepository).save(any(PostVote.class));
-    }
-
-    @Test
-    void delete_ShouldCallRepositoryDelete_WhenVoteExists() {
-        when(postVoteRepository.findById(1L)).thenReturn(Optional.of(testPostVote));
-
-        postVoteService.delete(1L);
-
-        verify(postVoteRepository).findById(1L);
-        verify(postVoteRepository).delete(testPostVote);
-    }
-
-    @Test
-    void delete_ShouldThrowException_WhenVoteNotFound() {
-        when(postVoteRepository.findById(1L)).thenReturn(Optional.empty());
-
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> postVoteService.delete(1L)
-        );
-
-        assertEquals("PostVote not found with id: 1", exception.getMessage());
         verify(postVoteRepository, never()).delete(any());
+    }
+
+    @Test
+    void getLikeCount_ShouldReturnCount() {
+        when(postVoteRepository.countByPostIdAndVoteType(10L, VoteType.LIKE)).thenReturn(5L);
+
+        long result = postVoteService.getLikeCount(10L);
+
+        assertEquals(5L, result);
+        verify(postVoteRepository).countByPostIdAndVoteType(10L, VoteType.LIKE);
+    }
+
+    @Test
+    void isLikedByUser_ShouldReturnTrue_WhenLikeExists() {
+        when(postVoteRepository.findByUserIdAndPostId(1L, 10L)).thenReturn(Optional.of(testPostVote));
+
+        boolean result = postVoteService.isLikedByUser(1L, 10L);
+
+        assertTrue(result);
+    }
+
+    @Test
+    void isLikedByUser_ShouldReturnFalse_WhenVoteDoesNotExist() {
+        when(postVoteRepository.findByUserIdAndPostId(1L, 10L)).thenReturn(Optional.empty());
+
+        boolean result = postVoteService.isLikedByUser(1L, 10L);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isLikedByUser_ShouldReturnFalse_WhenVoteIsDislike() {
+        testPostVote.setVoteType(VoteType.DISLIKE);
+
+        when(postVoteRepository.findByUserIdAndPostId(1L, 10L)).thenReturn(Optional.of(testPostVote));
+
+        boolean result = postVoteService.isLikedByUser(1L, 10L);
+
+        assertFalse(result);
     }
 }

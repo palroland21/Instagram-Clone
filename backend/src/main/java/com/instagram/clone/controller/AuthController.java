@@ -2,8 +2,8 @@ package com.instagram.clone.controller;
 
 import com.instagram.clone.dto.request.LoginRequest;
 import com.instagram.clone.dto.request.RegisterRequest;
-import com.instagram.clone.service.JwtService;
 import com.instagram.clone.model.User;
+import com.instagram.clone.service.JwtService;
 import com.instagram.clone.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +34,11 @@ public class AuthController {
         User saved = userService.create(user);
         String token = jwtService.generateToken(saved.getUsername());
 
-        return ResponseEntity.ok(Map.of("token", token));
+        return ResponseEntity.ok(Map.of(
+                "token", token,
+                "userId", saved.getId(),
+                "username", saved.getUsername()
+        ));
     }
 
     @PostMapping("/login")
@@ -52,7 +56,11 @@ public class AuthController {
 
             String token = jwtService.generateToken(user.getUsername());
 
-            return ResponseEntity.ok(Map.of("token", token));
+            return ResponseEntity.ok(Map.of(
+                    "token", token,
+                    "userId", user.getId(),
+                    "username", user.getUsername()
+            ));
         } catch (RuntimeException e) {
             return ResponseEntity.status(401).body("Invalid username or password!");
         }
