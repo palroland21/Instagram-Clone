@@ -19,7 +19,8 @@ function RightSidebar() {
                 const myUsername = payload.sub
 
                 const me = users.find(u => u.username === myUsername)
-                const others = users.filter(u => u.username !== myUsername)
+                const others = users
+                    .filter(u => u.username !== myUsername)
                     .sort(() => Math.random() - 0.5)
                     .slice(0, 5)
 
@@ -33,103 +34,162 @@ function RightSidebar() {
                             throw new Error('Failed to fetch following')
                         })
                         .then(followingList => {
-                            // Creăm un obiect { userId1: true, userId2: true } pentru a ști pe cine urmărim
                             const initialFollowedState = {}
+
                             followingList.forEach(u => {
                                 initialFollowedState[u.id] = true
                             })
+
                             setFollowed(initialFollowedState)
                         })
-                        .catch(err => console.error("Could not load following status:", err))
+                        .catch(err => console.error('Could not load following status:', err))
                 }
             })
-            .catch(() => {
-            })
+            .catch(() => {})
     }, [])
 
     const toggleFollow = async (targetId) => {
-        if (!currentUser) return;
+        if (!currentUser) return
 
-        const isCurrentlyFollowing = followed[targetId];
-        const token = localStorage.getItem('token');
-        const headers = { 'Authorization': `Bearer ${token}` };
+        const isCurrentlyFollowing = followed[targetId]
+        const token = localStorage.getItem('token')
+        const headers = { 'Authorization': `Bearer ${token}` }
 
-        setFollowed(prev => ({ ...prev, [targetId]: !isCurrentlyFollowing }));
+        setFollowed(prev => ({ ...prev, [targetId]: !isCurrentlyFollowing }))
 
         try {
-            const method = isCurrentlyFollowing ? 'DELETE' : 'POST';
+            const method = isCurrentlyFollowing ? 'DELETE' : 'POST'
+
             const res = await fetch(`${API_BASE_URL}/users/${currentUser.id}/following/${targetId}`, {
-                method: method,
-                headers: headers
-            });
+                method,
+                headers,
+            })
 
             if (!res.ok) {
-                setFollowed(prev => ({ ...prev, [targetId]: isCurrentlyFollowing }));
-                console.error("Eroare la backend pentru Follow/Unfollow");
+                setFollowed(prev => ({ ...prev, [targetId]: isCurrentlyFollowing }))
+                console.error('Eroare la backend pentru Follow/Unfollow')
             }
         } catch (error) {
-            setFollowed(prev => ({ ...prev, [targetId]: isCurrentlyFollowing }));
-            console.error("Nu s-a putut conecta la server:", error);
+            setFollowed(prev => ({ ...prev, [targetId]: isCurrentlyFollowing }))
+            console.error('Nu s-a putut conecta la server:', error)
         }
     }
 
     return (
         <div style={{ paddingTop: 20 }}>
             {currentUser && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <div
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        marginBottom: 20,
+                    }}
+                >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <img
                             src={currentUser.profilePicture || `https://i.pravatar.cc/150?u=${currentUser.id}`}
                             alt={currentUser.username}
-                            style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '1px solid #333' }}
+                            style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                border: '1px solid #333',
+                            }}
                         />
+
                         <div>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: '#f5f5f5' }}>{currentUser.username}</div>
-                            <div style={{ fontSize: 14, color: '#737373' }}>{currentUser.fullName}</div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: '#f5f5f5' }}>
+                                {currentUser.username}
+                            </div>
+
+                            <div style={{ fontSize: 14, color: '#737373' }}>
+                                {currentUser.fullName}
+                            </div>
                         </div>
                     </div>
-                    <button style={{ background: 'none', border: 'none', color: '#0095f6', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                        Switch
-                    </button>
                 </div>
             )}
 
-            {/* Suggestions header */}
             {suggestions.length > 0 && (
                 <>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: '#737373' }}>Suggested for you</span>
-                        <button style={{ background: 'none', border: 'none', color: '#f5f5f5', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: 16,
+                        }}
+                    >
+                        <span style={{ fontSize: 14, fontWeight: 600, color: '#737373' }}>
+                            Suggested for you
+                        </span>
+
+                        <button
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#f5f5f5',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                            }}
+                        >
                             See all
                         </button>
                     </div>
 
-                    {/* Suggestion items */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         {suggestions.map(s => (
-                            <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div
+                                key={s.id}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                }}
+                            >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <img
                                         src={s.profilePicture || `https://i.pravatar.cc/150?u=${s.id}`}
                                         alt={s.username}
-                                        style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
+                                        style={{
+                                            width: 32,
+                                            height: 32,
+                                            borderRadius: '50%',
+                                            objectFit: 'cover',
+                                        }}
                                     />
+
                                     <div>
-                                        <div style={{ fontSize: 13, fontWeight: 600, color: '#f5f5f5' }}>{s.username}</div>
-                                        <div style={{
-                                            fontSize: 12, color: '#737373',
-                                            maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                        }}>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: '#f5f5f5' }}>
+                                            {s.username}
+                                        </div>
+
+                                        <div
+                                            style={{
+                                                fontSize: 12,
+                                                color: '#737373',
+                                                maxWidth: 140,
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
                                             {s.fullName || 'Suggested for you'}
                                         </div>
                                     </div>
                                 </div>
+
                                 <button
                                     onClick={() => toggleFollow(s.id)}
                                     style={{
-                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
                                         color: followed[s.id] ? '#f5f5f5' : '#0095f6',
-                                        fontSize: 12, fontWeight: 600,
+                                        fontSize: 12,
+                                        fontWeight: 600,
                                     }}
                                 >
                                     {followed[s.id] ? 'Following' : 'Follow'}
@@ -140,14 +200,17 @@ function RightSidebar() {
                 </>
             )}
 
-            {/* Footer links */}
             <div style={{ marginTop: 24 }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
                     {FOOTER_LINKS.map(link => (
                         <a
                             key={link}
                             href="#"
-                            style={{ fontSize: 11, color: '#737373', textDecoration: 'none' }}
+                            style={{
+                                fontSize: 11,
+                                color: '#737373',
+                                textDecoration: 'none',
+                            }}
                             onMouseEnter={e => e.target.style.textDecoration = 'underline'}
                             onMouseLeave={e => e.target.style.textDecoration = 'none'}
                         >
@@ -155,7 +218,10 @@ function RightSidebar() {
                         </a>
                     ))}
                 </div>
-                <div style={{ fontSize: 11, color: '#737373' }}>© 2026 INSTAGRAM FROM META</div>
+
+                <div style={{ fontSize: 11, color: '#737373' }}>
+                    © 2026 INSTAGRAM CLONE · A.M. · R.P. · V.B.
+                </div>
             </div>
         </div>
     )
