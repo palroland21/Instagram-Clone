@@ -40,6 +40,41 @@ async function adminRequest(path, options = {}) {
     return response.text();
 }
 
+async function publicRequest(path, options = {}) {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            ...options.headers,
+        },
+    });
+
+    if (!response.ok) {
+        let errorMessage = "Request failed";
+
+        try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+            errorMessage = await response.text();
+        }
+
+        throw new Error(errorMessage || "Request failed");
+    }
+
+    const contentType = response.headers.get("content-type");
+
+    if (response.status === 204) {
+        return null;
+    }
+
+    if (contentType && contentType.includes("application/json")) {
+        return response.json();
+    }
+
+    return response.text();
+}
+
 export const adminService = {
     getUsers() {
         return adminRequest("/internal/admin/users");
@@ -57,14 +92,12 @@ export const adminService = {
         });
     },
 
-    deletePost(postId) {
-        return adminRequest(`/internal/admin/posts/${postId}`, {
-            method: "DELETE",
-        });
+    getPosts() {
+        return publicRequest("/posts");
     },
 
-    deleteComment(commentId) {
-        return adminRequest(`/internal/admin/comments/${commentId}`, {
+    deletePost(postId) {
+        return adminRequest(`/internal/admin/posts/${postId}`, {
             method: "DELETE",
         });
     },
@@ -73,6 +106,12 @@ export const adminService = {
         return adminRequest(`/internal/admin/posts/${postId}`, {
             method: "PUT",
             body: JSON.stringify(data),
+        });
+    },
+
+    deleteComment(commentId) {
+        return adminRequest(`/internal/admin/comments/${commentId}`, {
+            method: "DELETE",
         });
     },
 
