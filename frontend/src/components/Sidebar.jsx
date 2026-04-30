@@ -9,13 +9,22 @@ import {
     LogoutIcon,
 } from './Icons'
 import CreatePostModal from './create-post/CreatePostModal.jsx'
+import { fetchNotificationsData } from '../pages/notification-page/notification-page-components/notificationsApi'
+import {
+    buildNotifications,
+    hasUnreadNotifications,
+    markNotificationsAsSeen,
+    NOTIFICATIONS_SEEN_EVENT,
+} from '../pages/notification-page/notification-page-components/notificationHelpers'
 
 const API_BASE_URL = 'http://localhost:9090'
+const NOTIFICATION_CHECK_INTERVAL_MS = 5000
 
 function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
     const navigate = useNavigate()
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [currentUser, setCurrentUser] = useState(null)
+    const [hasUnread, setHasUnread] = useState(false)
 
     useEffect(() => {
         const token = localStorage.getItem('token')
@@ -35,11 +44,12 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
                 let me = null
 
                 if (storedUserId) {
-                    me = users.find(u => Number(u.id) === Number(storedUserId))
+                    me = users.find((user) => Number(user.id) === Number(storedUserId))
                 }
 
                 if (!me) {
                     let payload = null
+
                     try {
                         payload = JSON.parse(atob(token.split('.')[1]))
                     } catch {
@@ -47,7 +57,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
                     }
 
                     if (payload?.sub) {
-                        me = users.find(u => u.username === payload.sub)
+                        me = users.find((user) => user.username === payload.sub)
                     }
                 }
 
@@ -61,16 +71,107 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
         loadCurrentUser()
     }, [])
 
+    useEffect(() => {
+        const token = localStorage.getItem('token')
+        const storedUserId = localStorage.getItem('userId')
+            ? Number(localStorage.getItem('userId'))
+            : null
+
+        if (!token || !storedUserId) {
+            setHasUnread(false)
+            return
+        }
+
+        let cancelled = false
+
+        const checkUnreadNotifications = async () => {
+            try {
+                const data = await fetchNotificationsData({
+                    token,
+                    currentUserId: storedUserId,
+                })
+
+                const notificationsList = buildNotifications({
+                    postsData: data.postsData,
+                    commentsData: data.commentsData,
+                    postVotesData: data.postVotesData,
+                    usersData: data.usersData,
+                    currentUserId: storedUserId,
+                })
+
+                const unread = hasUnreadNotifications(
+                    storedUserId,
+                    notificationsList
+                )
+
+                if (!cancelled) {
+                    setHasUnread(unread)
+                }
+            } catch (error) {
+                console.error('Failed to check unread notifications:', error)
+            }
+        }
+
+        const handleNotificationsSeen = () => {
+            setHasUnread(false)
+        }
+
+        checkUnreadNotifications()
+
+        const intervalId = setInterval(
+            checkUnreadNotifications,
+            NOTIFICATION_CHECK_INTERVAL_MS
+        )
+
+        window.addEventListener(
+            NOTIFICATIONS_SEEN_EVENT,
+            handleNotificationsSeen
+        )
+
+        return () => {
+            cancelled = true
+            clearInterval(intervalId)
+            window.removeEventListener(
+                NOTIFICATIONS_SEEN_EVENT,
+                handleNotificationsSeen
+            )
+        }
+    }, [])
+
     const avatarSrc =
         currentUser?.profilePicture ||
         `https://i.pravatar.cc/150?u=${currentUser?.id || 'me'}`
 
     const navItems = [
-        { id: 'home', label: 'Home', path: '/home', icon: <HomeIcon filled={activeItem === 'home'} /> },
-        { id: 'search', label: 'Search', path: '/search', icon: <SearchIcon /> },
-        { id: 'messages', label: 'Messages', icon: <MessagesIcon /> },
-        { id: 'notifications', label: 'Notifications', path: '/notifications', icon: <HeartIcon /> },
-        { id: 'create', label: 'Create', icon: <PlusIcon />, action: () => setShowCreateModal(true) },
+        {
+            id: 'home',
+            label: 'Home',
+            path: '/home',
+            icon: <HomeIcon filled={activeItem === 'home'} />,
+        },
+        {
+            id: 'search',
+            label: 'Search',
+            path: '/search',
+            icon: <SearchIcon />,
+        },
+        {
+            id: 'messages',
+            label: 'Messages',
+            icon: <MessagesIcon />,
+        },
+        {
+            id: 'notifications',
+            label: 'Notification',
+            path: '/notifications',
+            icon: <HeartIcon />,
+        },
+        {
+            id: 'create',
+            label: 'Create',
+            icon: <PlusIcon />,
+            action: () => setShowCreateModal(true),
+        },
         {
             id: 'profile',
             label: 'Profile',
@@ -79,7 +180,12 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
                 <img
                     src={avatarSrc}
                     alt="profile"
-                    style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }}
+                    style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                    }}
                 />
             ),
         },
@@ -92,6 +198,15 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
         }
 
         setActiveItem(item.id)
+
+        if (item.id === 'notifications') {
+            const storedUserId = localStorage.getItem('userId')
+                ? Number(localStorage.getItem('userId'))
+                : null
+
+            markNotificationsAsSeen(storedUserId)
+            setHasUnread(false)
+        }
 
         if (item.path) {
             navigate(item.path)
@@ -106,10 +221,26 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
 
     if (isMobile) {
         const mobileItems = [
-            { id: 'home', path: '/home', icon: <HomeIcon filled={activeItem === 'home'} /> },
-            { id: 'search', path: '/search', icon: <SearchIcon /> },
-            { id: 'create', icon: <PlusIcon />, action: () => setShowCreateModal(true) },
-            { id: 'notifications', path: '/notifications', icon: <HeartIcon filled={false} /> },
+            {
+                id: 'home',
+                path: '/home',
+                icon: <HomeIcon filled={activeItem === 'home'} />,
+            },
+            {
+                id: 'search',
+                path: '/search',
+                icon: <SearchIcon />,
+            },
+            {
+                id: 'create',
+                icon: <PlusIcon />,
+                action: () => setShowCreateModal(true),
+            },
+            {
+                id: 'notifications',
+                path: '/notifications',
+                icon: <HeartIcon filled={false} />,
+            },
             {
                 id: 'profile',
                 path: '/profile',
@@ -122,7 +253,10 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
                             height: 26,
                             borderRadius: '50%',
                             objectFit: 'cover',
-                            border: activeItem === 'profile' ? '2px solid white' : '2px solid transparent',
+                            border:
+                                activeItem === 'profile'
+                                    ? '2px solid white'
+                                    : '2px solid transparent',
                         }}
                     />
                 ),
@@ -147,11 +281,12 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
                         paddingBottom: 'env(safe-area-inset-bottom)',
                     }}
                 >
-                    {mobileItems.map(item => (
+                    {mobileItems.map((item) => (
                         <button
                             key={item.id}
                             onClick={() => handleItemClick(item)}
                             style={{
+                                position: 'relative',
                                 background: 'none',
                                 border: 'none',
                                 cursor: 'pointer',
@@ -164,6 +299,10 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
                             }}
                         >
                             {item.icon}
+
+                            {item.id === 'notifications' && hasUnread && (
+                                <UnreadNotificationBell mobile />
+                            )}
                         </button>
                     ))}
                 </div>
@@ -210,34 +349,67 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
                     </span>
                 </div>
 
-                <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {navItems.map(item => (
-                        <button
-                            key={item.id}
-                            onClick={() => handleItemClick(item)}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 16,
-                                padding: '12px 12px',
-                                borderRadius: 8,
-                                border: 'none',
-                                background: 'transparent',
-                                cursor: 'pointer',
-                                color: 'white',
-                                fontSize: 15,
-                                fontWeight: activeItem === item.id ? 700 : 400,
-                                transition: 'background 0.15s',
-                                width: '100%',
-                                textAlign: 'left',
-                            }}
-                            onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a')}
-                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                        >
-                            <span style={{ flexShrink: 0 }}>{item.icon}</span>
-                            <span>{item.label}</span>
-                        </button>
-                    ))}
+                <nav
+                    style={{
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
+                    }}
+                >
+                    {navItems.map((item) => {
+                        const isNotificationsItem = item.id === 'notifications'
+                        const shouldBeBold =
+                            activeItem === item.id ||
+                            (isNotificationsItem && hasUnread)
+
+                        return (
+                            <button
+                                key={item.id}
+                                onClick={() => handleItemClick(item)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 16,
+                                    padding: '12px 12px',
+                                    borderRadius: 8,
+                                    border: 'none',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    color: 'white',
+                                    fontSize: 15,
+                                    fontWeight: shouldBeBold ? 700 : 400,
+                                    transition: 'background 0.15s',
+                                    width: '100%',
+                                    textAlign: 'left',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#1a1a1a'
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'transparent'
+                                }}
+                            >
+                                <span style={{ flexShrink: 0 }}>
+                                    {item.icon}
+                                </span>
+
+                                <span
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 8,
+                                    }}
+                                >
+                                    {item.label}
+
+                                    {isNotificationsItem && hasUnread && (
+                                        <UnreadNotificationBell />
+                                    )}
+                                </span>
+                            </button>
+                        )
+                    })}
                 </nav>
 
                 <button
@@ -258,8 +430,12 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
                         textAlign: 'left',
                         transition: 'background 0.15s',
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#1a1a1a'
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent'
+                    }}
                 >
                     <LogoutIcon />
                     <span>Log out</span>
@@ -273,6 +449,31 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
                 />
             )}
         </>
+    )
+}
+
+function UnreadNotificationBell({ mobile = false }) {
+    return (
+        <span
+            style={{
+                position: mobile ? 'absolute' : 'static',
+                top: mobile ? 3 : 'auto',
+                right: mobile ? 4 : 'auto',
+                width: mobile ? 18 : 20,
+                height: mobile ? 18 : 20,
+                borderRadius: '50%',
+                background: '#ed4956',
+                color: 'white',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: mobile ? 9 : 10,
+                lineHeight: 1,
+                boxShadow: '0 0 0 2px #000',
+            }}
+        >
+            🔔
+        </span>
     )
 }
 

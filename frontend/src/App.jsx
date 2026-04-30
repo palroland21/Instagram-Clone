@@ -3,7 +3,7 @@ import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
 import ProfilePage from "./pages/profile-page/ProfilePage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
-import NotificationsPage from './pages/NotificationsPage'
+import NotificationsPage from './pages/notification-page/NotificationsPage.jsx'
 
 function App() {
     return (
