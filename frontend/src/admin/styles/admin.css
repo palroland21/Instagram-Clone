@@ -452,3 +452,30 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }
+
+.admin-confirm-dialog {
+    width: 100%;
+    max-width: 440px;
+    background: #111;
+    border: 1px solid #262626;
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.admin-confirm-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.admin-confirm-message {
+    margin: 14px 0 22px;
+    color: #d4d4d4;
+    line-height: 1.6;
+}
+
+.admin-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
