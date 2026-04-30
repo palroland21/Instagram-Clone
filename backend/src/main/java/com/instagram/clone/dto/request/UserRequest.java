@@ -10,4 +10,5 @@ public class UserRequest {
     private String fullName;
     private String bio;
     private String profilePicture;
+    private String phoneNumber;
 }

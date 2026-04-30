@@ -12,5 +12,6 @@ public class UserResponse {
     private String fullName;
     private String bio;
     private String profilePicture;
+    private String phoneNumber;
     private LocalDateTime createdAt;
 }

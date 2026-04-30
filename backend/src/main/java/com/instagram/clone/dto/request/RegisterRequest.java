@@ -10,4 +10,5 @@ public class RegisterRequest {
     private String fullName;
     private String bio;
     private String profilePicture;
+    private String phoneNumber;
 }

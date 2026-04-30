@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import PostCard from './PostCard'
+import PostCard from './postcard/Postcard.jsx'
 
 const API_BASE_URL = 'http://localhost:9090'
 

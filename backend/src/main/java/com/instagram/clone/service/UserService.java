@@ -36,12 +36,27 @@ public class UserService {
 
     public User update(Long id, User updatedUser){
         User existing = getById(id);
+
+        if (!isValidPhoneNumber(updatedUser.getPhoneNumber())) {
+            throw new RuntimeException("Phone number is invalid! Use only digits, between 10 and 15 digits.");
+        }
+
         existing.setUsername(updatedUser.getUsername());
         existing.setEmail(updatedUser.getEmail());
         existing.setBio(updatedUser.getBio());
         existing.setFullName(updatedUser.getFullName());
         existing.setProfilePicture(updatedUser.getProfilePicture());
+        existing.setPhoneNumber(updatedUser.getPhoneNumber());
+
         return userRepository.save(existing);
+    }
+
+    private boolean isValidPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.isBlank()) {
+            return false;
+        }
+
+        return phoneNumber.matches("\\d{10,15}");
     }
 
     public void delete(Long id){

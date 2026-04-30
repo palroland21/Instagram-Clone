@@ -13,6 +13,7 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
         password: '',
         confirmPassword: '',
         fullName: '',
+        phoneNumber: '',
         bio: '',
         profilePicture: '',
     })
@@ -22,15 +23,20 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target
+
         setRegisterData((prev) => ({
             ...prev,
-            [name]: value,
+            [name]: name === 'phoneNumber' ? value.replace(/\D/g, '') : value,
         }))
     }
 
     const handleFileChange = (e) => {
         const file = e.target.files?.[0] || null
         setProfilePictureFile(file)
+    }
+
+    const isValidPhoneNumber = (phoneNumber) => {
+        return /^\d{10,15}$/.test(phoneNumber)
     }
 
     const handleSubmit = async (e) => {
@@ -40,6 +46,11 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
 
         if (registerData.password !== registerData.confirmPassword) {
             setError('Passwords do not match!')
+            return
+        }
+
+        if (!isValidPhoneNumber(registerData.phoneNumber)) {
+            setError('Phone number must contain only digits and must have between 10 and 15 digits.')
             return
         }
 
@@ -57,7 +68,8 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
                     body: formData,
                 })
 
-                const uploadData = await uploadResponse.json().catch(() => null)
+                const uploadText = await uploadResponse.text()
+                const uploadData = uploadText ? JSON.parse(uploadText) : null
 
                 if (!uploadResponse.ok) {
                     setError(uploadData?.message || 'Image upload failed!')
@@ -73,6 +85,7 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
                 email: registerData.email,
                 password: registerData.password,
                 fullName: registerData.fullName,
+                phoneNumber: registerData.phoneNumber,
                 bio: registerData.bio,
                 profilePicture: uploadedImageUrl,
             }
@@ -85,7 +98,14 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
                 body: JSON.stringify(requestBody),
             })
 
-            const data = await response.json().catch(() => null)
+            const responseText = await response.text()
+            let data = null
+
+            try {
+                data = responseText ? JSON.parse(responseText) : null
+            } catch {
+                data = responseText
+            }
 
             if (!response.ok) {
                 setError(typeof data === 'string' ? data : 'Register failed!')
@@ -97,6 +117,10 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
             localStorage.setItem('userId', data.userId)
             localStorage.setItem('username', data.username)
 
+            if (data.phoneNumber) {
+                localStorage.setItem('phoneNumber', data.phoneNumber)
+            }
+
             setMessage('Registration successful!')
 
             setRegisterData({
@@ -105,6 +129,7 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
                 password: '',
                 confirmPassword: '',
                 fullName: '',
+                phoneNumber: '',
                 bio: '',
                 profilePicture: '',
             })
@@ -162,6 +187,18 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
                 placeholder="Full name"
                 value={registerData.fullName}
                 onChange={handleChange}
+                required
+            />
+
+            <input
+                type="tel"
+                name="phoneNumber"
+                placeholder="Phone number, example: 0744611228"
+                value={registerData.phoneNumber}
+                onChange={handleChange}
+                inputMode="numeric"
+                pattern="[0-9]{10,15}"
+                title="Phone number must contain only digits and must have between 10 and 15 digits."
                 required
             />
 

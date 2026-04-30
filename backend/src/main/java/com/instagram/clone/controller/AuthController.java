@@ -23,6 +23,26 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            return ResponseEntity.badRequest().body("Username is required!");
+        }
+
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            return ResponseEntity.badRequest().body("Email is required!");
+        }
+
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            return ResponseEntity.badRequest().body("Password is required!");
+        }
+
+        if (request.getFullName() == null || request.getFullName().isBlank()) {
+            return ResponseEntity.badRequest().body("Full name is required!");
+        }
+
+        if (!isValidPhoneNumber(request.getPhoneNumber())) {
+            return ResponseEntity.badRequest().body("Phone number is invalid! Use only digits, between 10 and 15 digits.");
+        }
+
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
@@ -30,6 +50,7 @@ public class AuthController {
         user.setFullName(request.getFullName());
         user.setBio(request.getBio());
         user.setProfilePicture(request.getProfilePicture());
+        user.setPhoneNumber(request.getPhoneNumber());
 
         User saved = userService.create(user);
         String token = jwtService.generateToken(saved.getUsername());
@@ -37,7 +58,8 @@ public class AuthController {
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "userId", saved.getId(),
-                "username", saved.getUsername()
+                "username", saved.getUsername(),
+                "phoneNumber", saved.getPhoneNumber()
         ));
     }
 
@@ -50,15 +72,15 @@ public class AuthController {
         try {
             User user = userService.findByUsername(request.getUsername());
 
+            if (Boolean.TRUE.equals(user.getBanned())) {
+                return ResponseEntity.status(403).body("Your account has been banned.");
+            }
+
             if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
                 return ResponseEntity.status(401).body("Invalid username or password!");
             }
 
             String token = jwtService.generateToken(user.getUsername());
-
-            if (Boolean.TRUE.equals(user.getBanned())) {
-                throw new RuntimeException("Your account has been banned.");
-            }
 
             return ResponseEntity.ok(Map.of(
                     "token", token,
@@ -68,5 +90,13 @@ public class AuthController {
         } catch (RuntimeException e) {
             return ResponseEntity.status(401).body("Invalid username or password!");
         }
+    }
+
+    private boolean isValidPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.isBlank()) {
+            return false;
+        }
+
+        return phoneNumber.matches("\\d{10,15}");
     }
 }
