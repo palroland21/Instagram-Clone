@@ -8,6 +8,7 @@ import AdminDashboardPage from "./admin/pages/AdminDashboardPage";
 import AdminUsersPage from "./admin/pages/AdminUsersPage";
 import AdminPostsPage from "./admin/pages/AdminPostsPage";
 import AdminCommentsPage from "./admin/pages/AdminCommentsPage";
+import NotificationsPage from './pages/notification-page/NotificationsPage.jsx'
 
 function App() {
     return (
