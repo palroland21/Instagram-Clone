@@ -1,13 +1,11 @@
 package com.instagram.clone.service;
 
 import com.instagram.clone.model.User;
-import com.instagram.clone.model.enums.Role;
 import com.instagram.clone.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -26,40 +24,53 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User getById(Long id){
-        return userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+    public User getById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
     }
 
-    public List<User> getAll(){
+    public List<User> getAll() {
         return (List<User>) userRepository.findAll();
     }
 
-    public User update(Long id, User updatedUser){
+    public User update(Long id, User updatedUser) {
         User existing = getById(id);
 
-        if (!isValidPhoneNumber(updatedUser.getPhoneNumber())) {
-            throw new RuntimeException("Phone number is invalid! Use only digits, between 10 and 15 digits.");
+        if (updatedUser.getUsername() != null && !updatedUser.getUsername().isBlank()) {
+            existing.setUsername(updatedUser.getUsername());
         }
 
-        existing.setUsername(updatedUser.getUsername());
-        existing.setEmail(updatedUser.getEmail());
+        if (updatedUser.getEmail() != null && !updatedUser.getEmail().isBlank()) {
+            existing.setEmail(updatedUser.getEmail());
+        }
+
+        if (updatedUser.getFullName() != null && !updatedUser.getFullName().isBlank()) {
+            existing.setFullName(updatedUser.getFullName());
+        }
+
         existing.setBio(updatedUser.getBio());
-        existing.setFullName(updatedUser.getFullName());
         existing.setProfilePicture(updatedUser.getProfilePicture());
-        existing.setPhoneNumber(updatedUser.getPhoneNumber());
+
+        String phoneNumber = updatedUser.getPhoneNumber();
+
+        if (phoneNumber != null && !phoneNumber.isBlank()) {
+            phoneNumber = phoneNumber.trim();
+
+            if (!isValidPhoneNumber(phoneNumber)) {
+                throw new RuntimeException("Phone number is invalid! Use only digits, between 10 and 15 digits.");
+            }
+
+            existing.setPhoneNumber(phoneNumber);
+        }
 
         return userRepository.save(existing);
     }
 
     private boolean isValidPhoneNumber(String phoneNumber) {
-        if (phoneNumber == null || phoneNumber.isBlank()) {
-            return false;
-        }
-
-        return phoneNumber.matches("\\d{10,15}");
+        return phoneNumber != null && phoneNumber.matches("^\\d{10,15}$");
     }
 
-    public void delete(Long id){
+    public void delete(Long id) {
         userRepository.deleteById(id);
     }
 
@@ -71,12 +82,14 @@ public class UserService {
     public List<User> getFollowers(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
         return user.getFollowers();
     }
 
     public List<User> getFollowing(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
         return user.getFollowing();
     }
 
@@ -85,8 +98,10 @@ public class UserService {
         if (followerId.equals(followedId)) {
             throw new RuntimeException("You cannot follow yourself");
         }
+
         User follower = userRepository.findById(followerId)
                 .orElseThrow(() -> new RuntimeException("Follower not found"));
+
         User followed = userRepository.findById(followedId)
                 .orElseThrow(() -> new RuntimeException("Followed user not found"));
 
@@ -100,6 +115,7 @@ public class UserService {
     public void unfollowUser(Long followerId, Long followedId) {
         User follower = userRepository.findById(followerId)
                 .orElseThrow(() -> new RuntimeException("Follower not found"));
+
         User followed = userRepository.findById(followedId)
                 .orElseThrow(() -> new RuntimeException("Followed user not found"));
 
@@ -108,9 +124,4 @@ public class UserService {
             userRepository.save(followed);
         }
     }
-
-
-
-
-
 }

@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
-import ProfilePage from "./pages/ProfilePage.jsx";
+import ProfilePage from "./pages/profile-page/ProfilePage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import NotificationsPage from './pages/NotificationsPage'
 

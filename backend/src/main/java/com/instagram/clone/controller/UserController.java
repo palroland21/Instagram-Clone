@@ -35,11 +35,13 @@ public class UserController {
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody UserRequest request) {
         try {
             User updatedUser = new User();
+
             updatedUser.setUsername(request.getUsername());
             updatedUser.setEmail(request.getEmail());
             updatedUser.setFullName(request.getFullName());
             updatedUser.setBio(request.getBio());
             updatedUser.setProfilePicture(request.getProfilePicture());
+            updatedUser.setPhoneNumber(request.getPhoneNumber());
 
             return ResponseEntity.ok(toResponse(userService.update(id, updatedUser)));
         } catch (RuntimeException ex) {
@@ -97,6 +99,7 @@ public class UserController {
 
     private UserResponse toResponse(User user) {
         UserResponse response = new UserResponse();
+
         response.setId(user.getId());
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
@@ -104,6 +107,7 @@ public class UserController {
         response.setBio(user.getBio());
         response.setProfilePicture(user.getProfilePicture());
         response.setCreatedAt(user.getCreatedAt());
+
         return response;
     }
 }
