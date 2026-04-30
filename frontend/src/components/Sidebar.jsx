@@ -8,7 +8,7 @@ import {
     PlusIcon,
     LogoutIcon,
 } from './Icons'
-import CreatePostModal from './CreatePostModal'
+import CreatePostModal from './create-post/CreatePostModal.jsx'
 
 const API_BASE_URL = 'http://localhost:9090'
 
