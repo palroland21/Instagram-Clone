@@ -91,6 +91,11 @@ public class PostService {
         Post existing = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
 
+        // BARIERA DE SECURITATE: Doar proprietarul poate edita
+        if (!existing.getUser().getId().equals(request.getUserId())) {
+            throw new RuntimeException("Neautorizat: Nu ai permisiunea să editezi această postare!");
+        }
+
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -112,6 +117,18 @@ public class PostService {
 
         Post updated = postRepository.save(existing);
         return mapToResponse(updated, request.getUserId());
+    }
+
+    public void delete(Long id, Long currentUserId) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
+
+        // BARIERA DE SECURITATE: Doar proprietarul poate sterge
+        if (!post.getUser().getId().equals(currentUserId)) {
+            throw new RuntimeException("Neautorizat: Nu ai permisiunea să ștergi această postare!");
+        }
+
+        postRepository.delete(post);
     }
 
     public void delete(Long id) {
@@ -279,4 +296,36 @@ public class PostService {
 
         return urls;
     }
+
+    public PostResponse update(Long id, PostRequest request, Long currentUserId) {
+        Post existing = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
+
+        if (!existing.getUser().getId().equals(currentUserId)) {
+            throw new RuntimeException("Unauthorized: You can only edit your own posts.");
+        }
+
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        validatePictureUrls(request.getPictureUrls());
+
+        existing.setUser(user);
+        existing.setLocation(request.getLocation());
+        existing.setCaption(request.getCaption());
+        existing.setTitle(request.getTitle());
+
+        if (request.getStatus() != null) {
+            existing.setStatus(request.getStatus());
+        }
+
+        existing.setTags(getOrCreateTags(request.getTagNames()));
+
+        existing.clearPictures();
+        addPicturesToPost(existing, request.getPictureUrls());
+
+        Post updated = postRepository.save(existing);
+        return mapToResponse(updated, request.getUserId());
+    }
 }
+
