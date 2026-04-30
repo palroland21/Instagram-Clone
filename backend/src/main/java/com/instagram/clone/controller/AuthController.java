@@ -56,6 +56,10 @@ public class AuthController {
 
             String token = jwtService.generateToken(user.getUsername());
 
+            if (Boolean.TRUE.equals(user.getBanned())) {
+                throw new RuntimeException("Your account has been banned.");
+            }
+
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "userId", user.getId(),

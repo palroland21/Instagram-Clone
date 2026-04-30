@@ -45,6 +45,12 @@ public class User {
     @Column(nullable = false)
     private Double score = 0.0;
 
+    @Column(nullable = false)
+    private Boolean banned = false;
+
+    @Column(name = "phone_number", nullable = false, length = 30)
+    private String phoneNumber = "UNKNOWN";
+
     @PrePersist
     public void prePersist() {
         if (createdAt == null) {
@@ -55,6 +61,12 @@ public class User {
         }
         if (score == null) {
             score = 0.0;
+        }
+        if(banned == null){
+            banned = false;
+        }
+        if (phoneNumber == null || phoneNumber.isBlank()) {
+            phoneNumber = "UNKNOWN";
         }
     }
 

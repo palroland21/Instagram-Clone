@@ -36,6 +36,7 @@ public class SecurityConfig {
                         .requestMatchers("/tags/**").permitAll()
                         .requestMatchers("/users/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/internal/admin/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
