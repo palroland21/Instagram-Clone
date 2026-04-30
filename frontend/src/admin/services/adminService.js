@@ -121,4 +121,7 @@ export const adminService = {
             body: JSON.stringify(data),
         });
     },
+    getComments() {
+        return publicRequest("/comments");
+    },
 };
