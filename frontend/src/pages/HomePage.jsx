@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '../components/Sidebar'
 import Feed from '../components/Feed'
-import RightSidebar from '../components/RightSidebar'
+import RightSidebar from '../components/RightSidebar.jsx'
 
 function HomePage() {
     const [activeItem, setActiveItem] = useState('home')
