@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import CreatePostModal from '../components/CreatePostModal'
 
 const API_BASE_URL = 'http://localhost:9090'
 const UPLOAD_API_BASE_URL = 'http://localhost:9090/uploads'
@@ -24,33 +25,23 @@ function ProfilePage() {
     })
     const [saveError, setSaveError] = useState('')
 
-    const [followModalType, setFollowModalType] = useState(null) // 'followers' sau 'following'
-    const [followUsers, setFollowUsers] = useState([]) // Lista de useri de afișat în modal
+    const [followModalType, setFollowModalType] = useState(null)
+    const [followUsers, setFollowUsers] = useState([])
     const [loadingFollow, setLoadingFollow] = useState(false)
     const [followersCount, setFollowersCount] = useState(0)
     const [followingCount, setFollowingCount] = useState(0)
+
+    // STARE NOUĂ PENTRU MODALUL DE POSTARE
+    const [showCreateModal, setShowCreateModal] = useState(false)
 
     const getPostImages = post => {
         if (Array.isArray(post.pictureUrls) && post.pictureUrls.length > 0) {
             return post.pictureUrls
         }
-
-        if (post.pictureUrl) {
-            return [post.pictureUrl]
-        }
-
-        if (post.picture) {
-            return [post.picture]
-        }
-
-        if (post.imageUrl) {
-            return [post.imageUrl]
-        }
-
-        if (post.image) {
-            return [post.image]
-        }
-
+        if (post.pictureUrl) return [post.pictureUrl]
+        if (post.picture) return [post.picture]
+        if (post.imageUrl) return [post.imageUrl]
+        if (post.image) return [post.image]
         return []
     }
 
@@ -92,7 +83,6 @@ function ProfilePage() {
                     profilePicture: me.profilePicture || '',
                 })
 
-
                 fetch(`${API_BASE_URL}/users/${me.id}/followers`, { headers })
                     .then(res => res.json())
                     .then(data => setFollowersCount(data.length || 0))
@@ -102,7 +92,6 @@ function ProfilePage() {
                     .then(res => res.json())
                     .then(data => setFollowingCount(data.length || 0))
                     .catch(() => setFollowingCount(0))
-
 
                 const myPosts = allPosts
                     .filter(p => Number(p.userId) === Number(me.id))
@@ -241,7 +230,6 @@ function ProfilePage() {
 
                 try {
                     const errorData = await res.json()
-
                     if (typeof errorData === 'string') {
                         errorMessage = errorData
                     } else if (errorData?.message) {
@@ -255,13 +243,10 @@ function ProfilePage() {
                         if (errorText) {
                             errorMessage = errorText
                         }
-                    } catch {
-                        //
-                    }
+                    } catch {}
                 }
 
                 const normalizedMessage = errorMessage.toLowerCase()
-
                 const isUsernameTakenError =
                     normalizedMessage.includes('username') &&
                     (
@@ -319,17 +304,21 @@ function ProfilePage() {
         }
     }
 
+    // Funcția care se va apela după ce modalul creează postarea
+    const handlePostCreated = (newPost) => {
+        setShowCreateModal(false)
+        if (newPost) {
+            // Adăugăm postarea nouă la începutul listei pentru a o vedea instant pe profil
+            setPosts(prevPosts => [newPost, ...prevPosts])
+        } else {
+            // Un fallback în caz că modalul tău nu returnează obiectul postării
+            window.location.reload()
+        }
+    }
+
     if (loading) {
         return (
-            <div
-                style={{
-                    background: '#000',
-                    minHeight: '100vh',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
+            <div style={{ background: '#000', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ color: '#737373', fontSize: 14 }}>Loading...</div>
             </div>
         )
@@ -341,7 +330,8 @@ function ProfilePage() {
 
     return (
         <div style={{ background: '#000', minHeight: '100vh', color: 'white' }}>
-            {/* Header */}
+
+            {/* Header cu butonul de Create */}
             <div
                 style={{
                     display: 'flex',
@@ -369,8 +359,30 @@ function ProfilePage() {
                 >
                     ←
                 </button>
+
                 <span style={{ fontSize: 16, fontWeight: 700 }}>{user.username}</span>
-                <div style={{ width: 40 }} />
+
+                {/* MODIFICAT AICI: Deschide modalul de creare */}
+                <button
+                    onClick={() => setShowCreateModal(true)}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'white',
+                        cursor: 'pointer',
+                        padding: '4px 8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
+                    title="Create new post"
+                >
+                    <svg aria-label="New post" color="white" fill="white" height="24" role="img" viewBox="0 0 24 24" width="24">
+                        <path d="M2 12v3.45c0 2.849.698 4.005 1.606 4.944.94.909 2.098 1.608 4.946 1.608h6.896c2.848 0 4.006-.699 4.946-1.608C21.302 19.455 22 18.299 22 15.45V8.552c0-2.849-.698-4.006-1.606-4.945C19.454 2.699 18.296 2 15.448 2H8.552c-2.848 0-4.006.699-4.946 1.607C2.698 4.547 2 5.703 2 8.552Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
+                        <line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" x1="6.545" x2="17.455" y1="12.001" y2="12.001"></line>
+                        <line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" x1="12.003" x2="12.003" y1="6.545" y2="17.455"></line>
+                    </svg>
+                </button>
             </div>
 
             <div style={{ maxWidth: 935, margin: '0 auto', padding: '24px 16px 0' }}>
@@ -727,7 +739,7 @@ function ProfilePage() {
                 </div>
             )}
 
-            {/* --- MODALUL DE FOLLOWERS / FOLLOWING --- */}
+
             {followModalType && (
                 <div
                     onClick={() => setFollowModalType(null)}
@@ -801,6 +813,14 @@ function ProfilePage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {}
+            {showCreateModal && (
+                <CreatePostModal
+                    onClose={() => setShowCreateModal(false)}
+                    onPostCreated={handlePostCreated}
+                />
             )}
 
         </div>
