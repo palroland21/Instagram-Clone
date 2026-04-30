@@ -2,14 +2,14 @@ import { useState } from "react";
 import { adminService } from "../../services/adminService";
 import AdminButton from "../shared/AdminButton";
 
-function UnbanUserButton({ user, userId, onDone }) {
+function BanUserModal({ user, userId, onDone }) {
     const [loading, setLoading] = useState(false);
 
-    async function handleUnbanUser() {
+    async function handleBanUser() {
         const username = user.username || user.name || user.email || "this user";
 
         const confirmed = window.confirm(
-            `Are you sure you want to unban ${username}?`
+            `Are you sure you want to ban ${username}?`
         );
 
         if (!confirmed) {
@@ -18,10 +18,10 @@ function UnbanUserButton({ user, userId, onDone }) {
 
         try {
             setLoading(true);
-            await adminService.unbanUser(userId);
+            await adminService.banUser(userId);
             await onDone();
         } catch (err) {
-            alert(err.message || "Could not unban user.");
+            alert(err.message || "Could not ban user.");
         } finally {
             setLoading(false);
         }
@@ -29,13 +29,13 @@ function UnbanUserButton({ user, userId, onDone }) {
 
     return (
         <AdminButton
-            variant="success"
+            variant="danger"
             disabled={loading}
-            onClick={handleUnbanUser}
+            onClick={handleBanUser}
         >
-            {loading ? "Unbanning..." : "Unban"}
+            {loading ? "Banning..." : "Ban"}
         </AdminButton>
     );
 }
 
-export default UnbanUserButton;
+export default BanUserModal;

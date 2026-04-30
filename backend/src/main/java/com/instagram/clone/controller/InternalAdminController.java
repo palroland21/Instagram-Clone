@@ -14,6 +14,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/internal/admin")
 @RequiredArgsConstructor
+@CrossOrigin(
+        origins = "http://localhost:5173",
+        allowedHeaders = {"X-INTERNAL-SECRET", "Content-Type"},
+        methods = {
+                RequestMethod.GET,
+                RequestMethod.PUT,
+                RequestMethod.DELETE,
+                RequestMethod.OPTIONS
+        }
+)
 public class InternalAdminController {
 
     private final InternalAdminService internalAdminService;
