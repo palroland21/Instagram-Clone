@@ -1,4 +1,4 @@
-function PostsGrid({ posts, getPostImages }) {
+function PostsGrid({ posts, getPostImages, onPostClick }) {
     return (
         <div style={{ borderTop: '1px solid #262626', paddingTop: 12 }}>
             {posts.length === 0 ? (
@@ -21,10 +21,12 @@ function PostsGrid({ posts, getPostImages }) {
                         return (
                             <div
                                 key={post.id}
+                                onClick={() => onPostClick(post)}
                                 style={{
                                     aspectRatio: '1',
                                     overflow: 'hidden',
                                     background: '#111',
+                                    cursor: 'pointer',
                                 }}
                             >
                                 {firstImage ? (

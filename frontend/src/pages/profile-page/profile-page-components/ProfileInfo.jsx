@@ -7,6 +7,10 @@ function ProfileInfo({
                          onEditProfile,
                          onOpenFollowers,
                          onOpenFollowing,
+                         isOwner,
+                         isFollowing,
+                         onToggleFollow,
+                         onMessage
                      }) {
     return (
         <>
@@ -62,29 +66,66 @@ function ProfileInfo({
                 )}
             </div>
 
-            <button
-                onClick={onEditProfile}
-                style={{
-                    width: '100%',
-                    padding: '7px 16px',
-                    background: 'transparent',
-                    border: '1px solid #363636',
-                    borderRadius: 8,
-                    color: 'white',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    marginBottom: 24,
-                }}
-                onMouseEnter={e => {
-                    e.currentTarget.style.background = '#1a1a1a'
-                }}
-                onMouseLeave={e => {
-                    e.currentTarget.style.background = 'transparent'
-                }}
-            >
-                Edit profile
-            </button>
+            {isOwner ? (
+                <button
+                    onClick={onEditProfile}
+                    style={{
+                        width: '100%',
+                        padding: '7px 16px',
+                        background: 'transparent',
+                        border: '1px solid #363636',
+                        borderRadius: 8,
+                        color: 'white',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        marginBottom: 24,
+                    }}
+                    onMouseEnter={e => {
+                        e.currentTarget.style.background = '#1a1a1a'
+                    }}
+                    onMouseLeave={e => {
+                        e.currentTarget.style.background = 'transparent'
+                    }}
+                >
+                    Edit profile
+                </button>
+            ) : (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+                    <button
+                        onClick={onToggleFollow}
+                        style={{
+                            flex: 1,
+                            padding: '7px 16px',
+                            background: isFollowing ? '#363636' : '#0095f6',
+                            border: 'none',
+                            borderRadius: 8,
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        {isFollowing ? 'Following' : 'Follow'}
+                    </button>
+                    <button
+                        onClick={onMessage}
+                        style={{
+                            flex: 1,
+                            padding: '7px 16px',
+                            background: '#363636',
+                            border: 'none',
+                            borderRadius: 8,
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Message
+                    </button>
+                </div>
+            )}
         </>
     )
 }

@@ -15,6 +15,7 @@ function App() {
             <Route path="/" element={<AuthPage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/:targetUsername" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />

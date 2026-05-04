@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { API_BASE_URL, buildFileUrl } from './postcard-components/postCardUtils.js'
 import PostHeader from './postcard-components/PostHeader.jsx'
 import PostMediaCarousel from './postcard-components/PostMediaCarousel.jsx'
@@ -36,6 +36,21 @@ function PostCard({ post: initialPost, currentUserId }) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
     const token = localStorage.getItem('token')
+
+    useEffect(() => {
+        if (initialPost) {
+            if (post) {
+                Object.assign(initialPost, post);
+            }
+
+            initialPost.likedByCurrentUser = liked;
+            initialPost.dislikedByCurrentUser = disliked;
+            initialPost.likeCount = likeCount;
+            initialPost.dislikeCount = dislikeCount;
+            initialPost.voteCount = voteCount;
+            initialPost.comments = comments;
+        }
+    }, [post, liked, disliked, likeCount, dislikeCount, voteCount, comments, initialPost]);
 
     if (isDeleted) return null
 

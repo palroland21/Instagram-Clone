@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -83,14 +84,14 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return user.getFollowers();
+        return new ArrayList<>(user.getFollowers());
     }
 
     public List<User> getFollowing(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return user.getFollowing();
+        return new ArrayList<>(user.getFollowing());
     }
 
     @Transactional
@@ -105,7 +106,10 @@ public class UserService {
         User followed = userRepository.findById(followedId)
                 .orElseThrow(() -> new RuntimeException("Followed user not found"));
 
-        if (!followed.getFollowers().contains(follower)) {
+        boolean alreadyFollowing = followed.getFollowers().stream()
+                .anyMatch(u -> u.getId().equals(followerId));
+
+        if (!alreadyFollowing) {
             followed.getFollowers().add(follower);
             userRepository.save(followed);
         }
@@ -119,9 +123,7 @@ public class UserService {
         User followed = userRepository.findById(followedId)
                 .orElseThrow(() -> new RuntimeException("Followed user not found"));
 
-        if (followed.getFollowers().contains(follower)) {
-            followed.getFollowers().remove(follower);
-            userRepository.save(followed);
-        }
+        followed.getFollowers().removeIf(u -> u.getId().equals(followerId));
+        userRepository.save(followed);
     }
 }
