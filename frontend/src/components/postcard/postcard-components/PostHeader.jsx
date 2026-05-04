@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { DotsIcon } from '../../Icons.jsx'
 import { buildFileUrl, timeAgo } from './postCardUtils.js'
-
+import { useNavigate } from 'react-router-dom'
 function PostHeader({ post, isOwner, onEditClick, onDeleteClick, onReportClick }) {
     const [showMenu, setShowMenu] = useState(false)
+    const navigate = useNavigate()
 
     const handleEdit = () => {
         setShowMenu(false)
@@ -26,13 +27,19 @@ function PostHeader({ post, isOwner, onEditClick, onDeleteClick, onReportClick }
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 4px 8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <img
+                    onClick={() => navigate(`/profile/${post.username}`)}
                     src={buildFileUrl(post.userProfilePicture) || `https://i.pravatar.cc/150?u=${post.userId}`}
                     alt={post.username}
-                    style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
+                    style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', cursor: 'pointer' }}
                 />
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: '#f5f5f5' }}>{post.username}</span>
+                        <span
+                            onClick={() => navigate(`/profile/${post.username}`)}
+                            style={{ fontSize: 14, fontWeight: 600, color: '#f5f5f5', cursor: 'pointer' }}
+                        >
+                        {post.username}
+                    </span>
                         <span style={{ color: '#737373', fontSize: 14 }}>•</span>
                         <span style={{ fontSize: 14, color: '#737373' }}>{post.createdAt ? timeAgo(post.createdAt) : ''}</span>
                     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import ProfileHeader from './profile-page-components/ProfileHeader'
 import ProfileInfo from './profile-page-components/ProfileInfo'
@@ -12,11 +12,38 @@ import PostCard from '../../components/postcard/Postcard'
 const API_BASE_URL = 'http://localhost:9090'
 const UPLOAD_API_BASE_URL = 'http://localhost:9090/uploads'
 
+const cleanPhoneNumber = value => {
+    return String(value || '').replace(/\D/g, '')
+}
+
+const getFirstValidPhoneNumber = (...values) => {
+    for (const value of values) {
+        const digits = cleanPhoneNumber(value)
+
+        if (digits.length >= 10 && digits.length <= 15) {
+            return digits
+        }
+    }
+
+    return ''
+}
+
+const getPhoneNumberFromUserObject = userObject => {
+    return getFirstValidPhoneNumber(
+        userObject?.phoneNumber,
+        userObject?.phone,
+        userObject?.telephone,
+        userObject?.mobile
+    )
+}
+
+
 function ProfilePage() {
     const navigate = useNavigate()
+    const { targetUsername } = useParams()
     const resetUsernameTimeoutRef = useRef(null)
     const fileInputRef = useRef(null)
-
+    const [isFollowing, setIsFollowing] = useState(false)
     const [user, setUser] = useState(null)
     const [posts, setPosts] = useState([])
     const [loading, setLoading] = useState(true)
@@ -35,9 +62,12 @@ function ProfilePage() {
         profilePicture: '',
     })
 
+
     const currentUserId = localStorage.getItem('userId')
         ? Number(localStorage.getItem('userId'))
         : null
+
+    const isOwner = user && Number(user.id) === Number(currentUserId) // <-- ADAUGĂ ASTA AICI
 
     const [followModalType, setFollowModalType] = useState(null)
     const [followUsers, setFollowUsers] = useState([])
@@ -45,30 +75,7 @@ function ProfilePage() {
     const [followersCount, setFollowersCount] = useState(0)
     const [followingCount, setFollowingCount] = useState(0)
 
-    const cleanPhoneNumber = value => {
-        return String(value || '').replace(/\D/g, '')
-    }
 
-    const getFirstValidPhoneNumber = (...values) => {
-        for (const value of values) {
-            const digits = cleanPhoneNumber(value)
-
-            if (digits.length >= 10 && digits.length <= 15) {
-                return digits
-            }
-        }
-
-        return ''
-    }
-
-    const getPhoneNumberFromUserObject = userObject => {
-        return getFirstValidPhoneNumber(
-            userObject?.phoneNumber,
-            userObject?.phone,
-            userObject?.telephone,
-            userObject?.mobile
-        )
-    }
 
     const getPostImages = post => {
         if (Array.isArray(post.pictureUrls) && post.pictureUrls.length > 0) {
@@ -106,6 +113,8 @@ function ProfilePage() {
             const myUsername = payload.sub
             const headers = { Authorization: `Bearer ${token}` }
 
+            const usernameToLoad = targetUsername || myUsername
+
             try {
                 const [usersResponse, postsResponse] = await Promise.all([
                     fetch(`${API_BASE_URL}/users`, { headers }),
@@ -119,10 +128,10 @@ function ProfilePage() {
                 const users = await usersResponse.json()
                 const allPosts = await postsResponse.json()
 
-                const basicUser = users.find(u => u.username === myUsername)
+                const basicUser = users.find(u => u.username === usernameToLoad)
 
                 if (!basicUser) {
-                    navigate('/')
+                    navigate('/home')
                     return
                 }
 
@@ -179,7 +188,7 @@ function ProfilePage() {
         return () => {
             cancelled = true
         }
-    }, [navigate])
+    }, [navigate, targetUsername])
 
     useEffect(() => {
         return () => {
@@ -192,12 +201,23 @@ function ProfilePage() {
     const loadFollowCounts = (userId, headers) => {
         fetch(`${API_BASE_URL}/users/${userId}/followers`, { headers })
             .then(res => res.json())
-            .then(data => setFollowersCount(data.length || 0))
+            .then(data => {
+                const uniqueFollowersCount = Array.isArray(data) ? new Set(data.map(u => u.id)).size : 0;
+                setFollowersCount(uniqueFollowersCount);
+
+                if (Array.isArray(data)) {
+                    const amIFollowing = data.some(u => Number(u.id) === Number(currentUserId));
+                    setIsFollowing(amIFollowing);
+                }
+            })
             .catch(() => setFollowersCount(0))
 
         fetch(`${API_BASE_URL}/users/${userId}/following`, { headers })
             .then(res => res.json())
-            .then(data => setFollowingCount(data.length || 0))
+            .then(data => {
+                const uniqueFollowingCount = Array.isArray(data) ? new Set(data.map(u => u.id)).size : 0;
+                setFollowingCount(uniqueFollowingCount);
+            })
             .catch(() => setFollowingCount(0))
     }
 
@@ -446,6 +466,26 @@ function ProfilePage() {
         setShowCreateModal(false)
     }
 
+    const handleToggleFollow = async () => {
+        const token = localStorage.getItem('token')
+        const method = isFollowing ? 'DELETE' : 'POST'
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/users/${currentUserId}/following/${user.id}`, {
+                method,
+                headers: { Authorization: `Bearer ${token}` }
+            })
+
+            if (res.ok) {
+                setIsFollowing(!isFollowing)
+                setFollowersCount(prev => isFollowing ? prev - 1 : prev + 1)
+            }
+        } catch (error) {
+            console.error('Error toggling follow:', error)
+        }
+    }
+
+
     if (loading) {
         return (
             <div
@@ -471,7 +511,7 @@ function ProfilePage() {
             <ProfileHeader
                 username={user.username}
                 onBack={() => navigate('/home')}
-                onAddPost={() => setShowCreateModal(true)}
+                onAddPost={isOwner ? () => setShowCreateModal(true) : null}
             />
 
             <div style={{ maxWidth: 935, margin: '0 auto', padding: '24px 16px 0' }}>
@@ -481,6 +521,14 @@ function ProfilePage() {
                     followersCount={followersCount}
                     followingCount={followingCount}
                     avatarSrc={avatarSrc}
+
+                    /* --- AICI SUNT PROPRIETĂȚILE (PROPS) NOI --- */
+                    isOwner={isOwner}
+                    isFollowing={isFollowing}
+                    onToggleFollow={handleToggleFollow}
+                    onMessage={() => alert("Chat-ul inca nu este implementat.")}
+                    /* ------------------------------------------- */
+
                     onOpenFollowers={() => openFollowModal('followers')}
                     onOpenFollowing={() => openFollowModal('following')}
                     onEditProfile={() => {
@@ -497,7 +545,7 @@ function ProfilePage() {
                 />
             </div>
 
-            {editing && (
+            {isOwner && editing && (
                 <EditProfileModal
                     avatarSrc={avatarSrc}
                     editForm={editForm}
