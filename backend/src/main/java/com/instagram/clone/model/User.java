@@ -72,16 +72,7 @@ public class User {
         }
     }
 
-//    @ManyToMany(fetch = FetchType.LAZY)
-//    @JoinTable(
-//            name = "user_followers",
-//            joinColumns = @JoinColumn(name = "followed_id"),
-//            inverseJoinColumns = @JoinColumn(name = "follower_id")
-//    )
-//    private List<User> followers = new ArrayList<>();
-//
-//    @ManyToMany(mappedBy = "followers", fetch = FetchType.LAZY)
-//    private List<User> following = new ArrayList<>();
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "user_followers",
@@ -105,6 +96,5 @@ public class User {
     public int hashCode() {
         return getClass().hashCode();
     }
-
 
 }
