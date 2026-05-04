@@ -44,6 +44,7 @@ function ProfilePage() {
     const resetUsernameTimeoutRef = useRef(null)
     const fileInputRef = useRef(null)
     const [isFollowing, setIsFollowing] = useState(false)
+    const [isTogglingFollow, setIsTogglingFollow] = useState(false)
     const [user, setUser] = useState(null)
     const [posts, setPosts] = useState([])
     const [loading, setLoading] = useState(true)
@@ -67,7 +68,7 @@ function ProfilePage() {
         ? Number(localStorage.getItem('userId'))
         : null
 
-    const isOwner = user && Number(user.id) === Number(currentUserId) // <-- ADAUGĂ ASTA AICI
+    const isOwner = user && Number(user.id) === Number(currentUserId)
 
     const [followModalType, setFollowModalType] = useState(null)
     const [followUsers, setFollowUsers] = useState([])
@@ -466,7 +467,30 @@ function ProfilePage() {
         setShowCreateModal(false)
     }
 
+    // const handleToggleFollow = async () => {
+    //     const token = localStorage.getItem('token')
+    //     const method = isFollowing ? 'DELETE' : 'POST'
+    //
+    //     try {
+    //         const res = await fetch(`${API_BASE_URL}/users/${currentUserId}/following/${user.id}`, {
+    //             method,
+    //             headers: { Authorization: `Bearer ${token}` }
+    //         })
+    //
+    //         if (res.ok) {
+    //             setIsFollowing(!isFollowing)
+    //             setFollowersCount(prev => isFollowing ? prev - 1 : prev + 1)
+    //         }
+    //     } catch (error) {
+    //         console.error('Error toggling follow:', error)
+    //     }
+    // }
+
     const handleToggleFollow = async () => {
+        if (isTogglingFollow) return;
+
+        setIsTogglingFollow(true); // Punem lacătul
+
         const token = localStorage.getItem('token')
         const method = isFollowing ? 'DELETE' : 'POST'
 
@@ -478,10 +502,12 @@ function ProfilePage() {
 
             if (res.ok) {
                 setIsFollowing(!isFollowing)
-                setFollowersCount(prev => isFollowing ? prev - 1 : prev + 1)
+                setFollowersCount(prev => method === 'DELETE' ? Math.max(0, prev - 1) : prev + 1)
             }
         } catch (error) {
             console.error('Error toggling follow:', error)
+        } finally {
+            setIsTogglingFollow(false);
         }
     }
 
@@ -522,7 +548,6 @@ function ProfilePage() {
                     followingCount={followingCount}
                     avatarSrc={avatarSrc}
 
-                    /* --- AICI SUNT PROPRIETĂȚILE (PROPS) NOI --- */
                     isOwner={isOwner}
                     isFollowing={isFollowing}
                     onToggleFollow={handleToggleFollow}

@@ -21,12 +21,12 @@ function PostsGrid({ posts, getPostImages, onPostClick }) {
                         return (
                             <div
                                 key={post.id}
-                                onClick={() => onPostClick(post)} // <--- AICI SE ADAUGĂ CLICK-UL
+                                onClick={() => onPostClick(post)}
                                 style={{
                                     aspectRatio: '1',
                                     overflow: 'hidden',
                                     background: '#111',
-                                    cursor: 'pointer', // <--- Să se facă mouse-ul "mânuță"
+                                    cursor: 'pointer',
                                 }}
                             >
                                 {firstImage ? (
