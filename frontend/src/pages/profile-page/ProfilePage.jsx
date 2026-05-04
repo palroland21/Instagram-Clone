@@ -6,6 +6,8 @@ import ProfileInfo from './profile-page-components/ProfileInfo'
 import PostsGrid from './profile-page-components/PostsGrid'
 import EditProfileModal from './profile-page-components/EditProfileModal'
 import FollowModal from './profile-page-components/FollowModal'
+import CreatePostModal from '../../components/create-post/CreatePostModal'
+import PostCard from '../../components/postcard/Postcard'
 
 const API_BASE_URL = 'http://localhost:9090'
 const UPLOAD_API_BASE_URL = 'http://localhost:9090/uploads'
@@ -18,12 +20,12 @@ function ProfilePage() {
     const [user, setUser] = useState(null)
     const [posts, setPosts] = useState([])
     const [loading, setLoading] = useState(true)
-
+    const [selectedPost, setSelectedPost] = useState(null)
     const [editing, setEditing] = useState(false)
     const [profilePictureFile, setProfilePictureFile] = useState(null)
     const [isSaving, setIsSaving] = useState(false)
     const [saveError, setSaveError] = useState('')
-
+    const [showCreateModal, setShowCreateModal] = useState(false)
     const [editForm, setEditForm] = useState({
         username: '',
         fullName: '',
@@ -32,6 +34,10 @@ function ProfilePage() {
         phoneNumber: '',
         profilePicture: '',
     })
+
+    const currentUserId = localStorage.getItem('userId')
+        ? Number(localStorage.getItem('userId'))
+        : null
 
     const [followModalType, setFollowModalType] = useState(null)
     const [followUsers, setFollowUsers] = useState([])
@@ -433,6 +439,13 @@ function ProfilePage() {
         }
     }
 
+    const handlePostCreated = (newPost) => {
+        if (newPost) {
+            setPosts(prevPosts => [newPost, ...prevPosts])
+        }
+        setShowCreateModal(false)
+    }
+
     if (loading) {
         return (
             <div
@@ -458,6 +471,7 @@ function ProfilePage() {
             <ProfileHeader
                 username={user.username}
                 onBack={() => navigate('/home')}
+                onAddPost={() => setShowCreateModal(true)}
             />
 
             <div style={{ maxWidth: 935, margin: '0 auto', padding: '24px 16px 0' }}>
@@ -479,6 +493,7 @@ function ProfilePage() {
                 <PostsGrid
                     posts={posts}
                     getPostImages={getPostImages}
+                    onPostClick={(post) => setSelectedPost(post)}
                 />
             </div>
 
@@ -505,6 +520,35 @@ function ProfilePage() {
                     loadingFollow={loadingFollow}
                     onClose={() => setFollowModalType(null)}
                 />
+            )}
+            {showCreateModal && (
+                <CreatePostModal
+                    onClose={() => setShowCreateModal(false)}
+                    onPostCreated={handlePostCreated}
+                />
+            )}
+
+            {selectedPost && (
+                <div
+                    onClick={() => setSelectedPost(null)}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.8)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 9999,
+                        padding: 16
+                    }}
+                >
+                    <div onClick={e => e.stopPropagation()} style={{ background: '#000', borderRadius: 8, maxWidth: 600, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <PostCard
+                            post={selectedPost}
+                            currentUserId={currentUserId}
+                        />
+                    </div>
+                </div>
             )}
         </div>
     )

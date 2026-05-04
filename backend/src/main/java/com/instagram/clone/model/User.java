@@ -6,7 +6,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Data
 @Entity
@@ -70,14 +72,39 @@ public class User {
         }
     }
 
+//    @ManyToMany(fetch = FetchType.LAZY)
+//    @JoinTable(
+//            name = "user_followers",
+//            joinColumns = @JoinColumn(name = "followed_id"),
+//            inverseJoinColumns = @JoinColumn(name = "follower_id")
+//    )
+//    private List<User> followers = new ArrayList<>();
+//
+//    @ManyToMany(mappedBy = "followers", fetch = FetchType.LAZY)
+//    private List<User> following = new ArrayList<>();
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-            name = "user_followers",
-            joinColumns = @JoinColumn(name = "followed_id"),
-            inverseJoinColumns = @JoinColumn(name = "follower_id")
-    )
-    private List<User> followers = new ArrayList<>();
+        name = "user_followers",
+        joinColumns = @JoinColumn(name = "followed_id"),
+        inverseJoinColumns = @JoinColumn(name = "follower_id")
+)
+    private Set<User> followers = new HashSet<>(); // Schimbat in Set
 
     @ManyToMany(mappedBy = "followers", fetch = FetchType.LAZY)
-    private List<User> following = new ArrayList<>();
+    private Set<User> following = new HashSet<>(); // Schimbat in Set
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        return id != null && id.equals(((User) o).getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+
+
 }
