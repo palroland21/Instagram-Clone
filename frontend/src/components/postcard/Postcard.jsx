@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { API_BASE_URL, buildFileUrl } from './postcard-components/postCardUtils.js'
+import { useState } from 'react'
+import { buildFileUrl } from '../../services/index.js'
 import PostHeader from './postcard-components/PostHeader.jsx'
 import PostMediaCarousel from './postcard-components/PostMediaCarousel.jsx'
 import PostActions from './postcard-components/PostActions.jsx'
@@ -7,6 +7,15 @@ import PostStats from './postcard-components/PostStats.jsx'
 import PostCaption from './postcard-components/PostCaption.jsx'
 import CommentsSection from './postcard-components/CommentsSection.jsx'
 import AddComment from './postcard-components/AddComment.jsx'
+import {
+    createComment,
+    deletePost,
+    getToken,
+    normalizeComment,
+    toggleCommentVote,
+    togglePostVote,
+    updatePost,
+} from '../../services'
 
 function PostCard({ post: initialPost, currentUserId }) {
     const [post, setPost] = useState(initialPost)
@@ -35,22 +44,7 @@ function PostCard({ post: initialPost, currentUserId }) {
     const [expanded, setExpanded] = useState(false)
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
-    const token = localStorage.getItem('token')
-
-    useEffect(() => {
-        if (initialPost) {
-            if (post) {
-                Object.assign(initialPost, post);
-            }
-
-            initialPost.likedByCurrentUser = liked;
-            initialPost.dislikedByCurrentUser = disliked;
-            initialPost.likeCount = likeCount;
-            initialPost.dislikeCount = dislikeCount;
-            initialPost.voteCount = voteCount;
-            initialPost.comments = comments;
-        }
-    }, [post, liked, disliked, likeCount, dislikeCount, voteCount, comments, initialPost]);
+    const token = getToken()
 
     if (isDeleted) return null
 
@@ -71,15 +65,12 @@ function PostCard({ post: initialPost, currentUserId }) {
 
     const handleDeletePost = async () => {
         try {
-            const res = await fetch(`${API_BASE_URL}/posts/${post.id}?userId=${currentUserId}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` }
+            await deletePost({
+                token,
+                postId: post.id,
+                userId: currentUserId,
             })
-            if (res.ok) {
-                setIsDeleted(true)
-            } else {
-                console.error("Nu s-a putut șterge postarea")
-            }
+            setIsDeleted(true)
         } catch (error) {
             console.error("Eroare la ștergere:", error)
         }
@@ -113,27 +104,17 @@ function PostCard({ post: initialPost, currentUserId }) {
         }
 
         try {
-            const res = await fetch(`${API_BASE_URL}/posts/${post.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
+            const updatedPost = await updatePost({
+                token,
+                postId: post.id,
+                payload,
             })
 
-            if (res.ok) {
-                const updatedPost = await res.json()
-                setPost(updatedPost)
-                setIsEditing(false)
-            } else {
-                const errorData = await res.text()
-                console.error("Eroare la update postare:", errorData)
-                alert("Nu s-a putut salva: " + errorData)
-            }
+            setPost(updatedPost)
+            setIsEditing(false)
         } catch (error) {
             console.error("Eroare request update:", error)
-            alert("Eroare de conexiune la server.")
+            alert("Nu s-a putut salva: " + (error.message || 'Eroare de conexiune la server.'))
         }
     }
 
@@ -144,17 +125,12 @@ function PostCard({ post: initialPost, currentUserId }) {
         }
 
         try {
-            const response = await fetch(
-                `${API_BASE_URL}/post-votes/toggle?userId=${currentUserId}&postId=${post.id}&voteType=${voteType}`,
-                {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            )
-
-            if (!response.ok) throw new Error('Failed to toggle post vote')
-
-            const data = await response.json()
+            const data = await togglePostVote({
+                token,
+                userId: currentUserId,
+                postId: post.id,
+                voteType,
+            })
 
             setLiked(Boolean(data.liked))
             setDisliked(Boolean(data.disliked))
@@ -173,17 +149,12 @@ function PostCard({ post: initialPost, currentUserId }) {
         }
 
         try {
-            const response = await fetch(
-                `${API_BASE_URL}/comment-votes/toggle?userId=${currentUserId}&commentId=${commentId}&voteType=${voteType}`,
-                {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            )
-
-            if (!response.ok) throw new Error('Failed to toggle comment vote')
-
-            const data = await response.json()
+            const data = await toggleCommentVote({
+                token,
+                userId: currentUserId,
+                commentId,
+                voteType,
+            })
 
             setComments((prev) =>
                 prev.map((comment) =>
@@ -212,35 +183,14 @@ function PostCard({ post: initialPost, currentUserId }) {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/comments`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    userId: currentUserId,
-                    postId: post.id,
-                    text: commentText.trim(),
-                }),
+            const newComment = await createComment({
+                token,
+                userId: currentUserId,
+                postId: post.id,
+                text: commentText.trim(),
             })
 
-            if (!response.ok) throw new Error('Failed to post comment')
-
-            const newComment = await response.json()
-
-            const enrichedComment = {
-                ...newComment,
-                userId: newComment.userId ?? currentUserId,
-                username: newComment.username || 'user',
-                userProfilePicture: buildFileUrl(newComment.userProfilePicture || ''),
-                pictureUrl: buildFileUrl(newComment.pictureUrl || ''),
-                likeCount: Number(newComment.likeCount) || 0,
-                dislikeCount: Number(newComment.dislikeCount) || 0,
-                voteCount: Number(newComment.voteCount) || 0,
-                likedByCurrentUser: Boolean(newComment.likedByCurrentUser),
-                dislikedByCurrentUser: Boolean(newComment.dislikedByCurrentUser),
-            }
+            const enrichedComment = normalizeComment(newComment, new Map(), currentUserId)
 
             setComments((prev) => [...prev, enrichedComment])
             setCommentText('')

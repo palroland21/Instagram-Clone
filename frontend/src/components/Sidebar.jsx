@@ -11,13 +11,18 @@ import {
 import CreatePostModal from './create-post/CreatePostModal.jsx'
 import { fetchNotificationsData } from '../pages/notification-page/notification-page-components/notificationsApi'
 import {
+    clearAuthSession,
+    fetchCurrentUser,
+    getCurrentUserId,
+    getToken,
+} from '../services'
+import {
     buildNotifications,
     hasUnreadNotifications,
     markNotificationsAsSeen,
     NOTIFICATIONS_SEEN_EVENT,
 } from '../pages/notification-page/notification-page-components/notificationHelpers'
 
-const API_BASE_URL = 'http://localhost:9090'
 const NOTIFICATION_CHECK_INTERVAL_MS = 5000
 
 function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
@@ -27,40 +32,14 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
     const [hasUnread, setHasUnread] = useState(false)
 
     useEffect(() => {
-        const token = localStorage.getItem('token')
-        const storedUserId = localStorage.getItem('userId')
+        const token = getToken()
+        const storedUserId = getCurrentUserId()
 
         if (!token) return
 
-        const headers = { Authorization: `Bearer ${token}` }
-
         const loadCurrentUser = async () => {
             try {
-                const res = await fetch(`${API_BASE_URL}/users`, { headers })
-                if (!res.ok) throw new Error('Failed to fetch users')
-
-                const users = await res.json()
-
-                let me = null
-
-                if (storedUserId) {
-                    me = users.find((user) => Number(user.id) === Number(storedUserId))
-                }
-
-                if (!me) {
-                    let payload = null
-
-                    try {
-                        payload = JSON.parse(atob(token.split('.')[1]))
-                    } catch {
-                        payload = null
-                    }
-
-                    if (payload?.sub) {
-                        me = users.find((user) => user.username === payload.sub)
-                    }
-                }
-
+                const me = await fetchCurrentUser({ token, storedUserId })
                 setCurrentUser(me || null)
             } catch (error) {
                 console.error('Failed to load current user:', error)
@@ -72,13 +51,10 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
     }, [])
 
     useEffect(() => {
-        const token = localStorage.getItem('token')
-        const storedUserId = localStorage.getItem('userId')
-            ? Number(localStorage.getItem('userId'))
-            : null
+        const token = getToken()
+        const storedUserId = getCurrentUserId()
 
         if (!token || !storedUserId) {
-            setHasUnread(false)
             return
         }
 
@@ -200,9 +176,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
         setActiveItem(item.id)
 
         if (item.id === 'notifications') {
-            const storedUserId = localStorage.getItem('userId')
-                ? Number(localStorage.getItem('userId'))
-                : null
+            const storedUserId = getCurrentUserId()
 
             markNotificationsAsSeen(storedUserId)
             setHasUnread(false)
@@ -214,8 +188,7 @@ function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
     }
 
     const handleLogout = () => {
-        localStorage.removeItem('token')
-        localStorage.removeItem('userId')
+        clearAuthSession()
         navigate('/')
     }
 

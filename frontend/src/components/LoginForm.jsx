@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-const API_BASE_URL = 'http://localhost:9090/auth'
+import { login, persistAuthSession } from '../services'
 
 function LoginForm({ setMessage, setError, goToRegister }) {
     const navigate = useNavigate()
@@ -25,24 +24,8 @@ function LoginForm({ setMessage, setError, goToRegister }) {
         setError('')
 
         try {
-            const response = await fetch(`${API_BASE_URL}/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(loginData),
-            })
-
-            const data = await response.json().catch(() => null)
-
-            if (!response.ok) {
-                setError(typeof data === 'string' ? data : 'Login failed!')
-                return
-            }
-
-            localStorage.setItem('token', data.token)
-            localStorage.setItem('userId', data.userId)
-            localStorage.setItem('username', data.username)
+            const data = await login(loginData)
+            persistAuthSession(data)
 
             setMessage('Login successful!')
 
@@ -52,8 +35,8 @@ function LoginForm({ setMessage, setError, goToRegister }) {
             })
 
             navigate('/home')
-        } catch {
-            setError('Cannot connect to backend.')
+        } catch (error) {
+            setError(error.message || 'Cannot connect to backend.')
         }
     }
 

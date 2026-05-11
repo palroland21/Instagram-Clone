@@ -1,0 +1,141 @@
+import { apiJsonRequest, apiRequest, buildFileUrl } from './apiClient'
+import { fetchComments, normalizeComment, sortCommentsByVotes } from './commentService'
+import { fetchUsers } from './userService'
+
+function getOwnerId(item) {
+    return item.userId ?? item.authorId ?? item.user?.id ?? item.author?.id ?? null
+}
+
+export function normalizePost(post, usersMap = new Map()) {
+    const ownerId = Number(getOwnerId(post))
+    const author = usersMap.get(ownerId)
+    const normalizedComments = Array.isArray(post.comments)
+        ? sortCommentsByVotes(post.comments.map((comment) => normalizeComment(comment, usersMap)))
+        : []
+
+    return {
+        ...post,
+        userId: ownerId,
+        username:
+            post.username ||
+            post.author?.username ||
+            author?.username ||
+            'user',
+        userProfilePicture: buildFileUrl(
+            post.userProfilePicture ||
+            post.author?.profilePicture ||
+            author?.profilePicture ||
+            ''
+        ),
+        pictureUrls: Array.isArray(post.pictureUrls)
+            ? post.pictureUrls.map((url) => buildFileUrl(url))
+            : [],
+        pictureUrl: buildFileUrl(
+            post.pictureUrl ||
+            post.picture ||
+            post.imageUrl ||
+            post.image ||
+            post.photoUrl ||
+            ''
+        ),
+        likeCount: Number(post.likeCount) || 0,
+        dislikeCount: Number(post.dislikeCount) || 0,
+        voteCount: Number(post.voteCount) || 0,
+        likedByCurrentUser: Boolean(post.likedByCurrentUser),
+        dislikedByCurrentUser: Boolean(post.dislikedByCurrentUser),
+        comments: normalizedComments,
+    }
+}
+
+export function sortPostsNewestFirst(posts) {
+    return [...posts].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+}
+
+export function fetchPosts({ token, currentUserId } = {}) {
+    const query = currentUserId ? `?currentUserId=${currentUserId}` : ''
+
+    return apiRequest(`/posts${query}`, {
+        token,
+        errorMessage: 'Failed to fetch posts',
+    })
+}
+
+export async function fetchFeedPosts({ token, currentUserId }) {
+    const [postsData, usersData] = await Promise.all([
+        fetchPosts({ token, currentUserId }),
+        fetchUsers(token),
+    ])
+
+    const usersMap = new Map(usersData.map((user) => [Number(user.id), user]))
+
+    return sortPostsNewestFirst(
+        postsData.map((post) => normalizePost(post, usersMap))
+    )
+}
+
+export async function fetchSearchPosts({ token, currentUserId }) {
+    const [postsData, usersData, commentsData] = await Promise.all([
+        fetchPosts({ token, currentUserId }),
+        fetchUsers(token),
+        fetchComments(token).catch(() => []),
+    ])
+
+    const usersMap = new Map(usersData.map((user) => [Number(user.id), user]))
+
+    return sortPostsNewestFirst(
+        postsData.map((post) => {
+            const postComments = commentsData
+                .filter((comment) => Number(comment.postId) === Number(post.id))
+                .map((comment) => normalizeComment(comment, usersMap))
+
+            return {
+                ...normalizePost(post, usersMap),
+                comments: postComments,
+            }
+        })
+    )
+}
+
+export function createPost({ token, userId, pictureUrls, caption, location, tags }) {
+    return apiJsonRequest('/posts', {
+        method: 'POST',
+        token,
+        body: {
+            userId,
+            pictureUrls,
+            caption,
+            location,
+            tagNames: tags,
+            title: caption.trim().slice(0, 60) || 'Post',
+        },
+        errorMessage: 'Failed to create post',
+    })
+}
+
+export function updatePost({ token, postId, payload }) {
+    return apiJsonRequest(`/posts/${postId}`, {
+        method: 'PUT',
+        token,
+        body: payload,
+        errorMessage: 'Failed to update post',
+    })
+}
+
+export function deletePost({ token, postId, userId }) {
+    return apiRequest(`/posts/${postId}?userId=${userId}`, {
+        method: 'DELETE',
+        token,
+        errorMessage: 'Failed to delete post',
+    })
+}
+
+export function togglePostVote({ token, userId, postId, voteType }) {
+    return apiRequest(
+        `/post-votes/toggle?userId=${userId}&postId=${postId}&voteType=${voteType}`,
+        {
+            method: 'POST',
+            token,
+            errorMessage: 'Failed to toggle post vote',
+        }
+    )
+}

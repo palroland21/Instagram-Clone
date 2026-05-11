@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import ModalHeader from './ModalHeader'
 import UploadStep from './UploadStep'
 import EditStep from './EditStep'
-import { createPost, uploadSingleImage } from './createPostApi'
+import { createPost, getCurrentUserId, getToken, uploadSingleImage } from '../../../services'
 
 function CreatePostContent({ onClose, onPostCreated }) {
     const [step, setStep] = useState('upload')
@@ -116,8 +116,8 @@ function CreatePostContent({ onClose, onPostCreated }) {
         setLoading(true)
 
         try {
-            const token = localStorage.getItem('token')
-            const userId = Number(localStorage.getItem('userId'))
+            const token = getToken()
+            const userId = getCurrentUserId()
 
             if (!token) {
                 throw new Error('You are not logged in.')

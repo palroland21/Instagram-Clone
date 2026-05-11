@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import ProfileHeader from './profile-page-components/ProfileHeader'
@@ -8,9 +8,19 @@ import EditProfileModal from './profile-page-components/EditProfileModal'
 import FollowModal from './profile-page-components/FollowModal'
 import CreatePostModal from '../../components/create-post/CreatePostModal'
 import PostCard from '../../components/postcard/Postcard'
-
-const API_BASE_URL = 'http://localhost:9090'
-const UPLOAD_API_BASE_URL = 'http://localhost:9090/uploads'
+import {
+    decodeJwtPayload,
+    fetchFollowers,
+    fetchFollowing,
+    fetchPosts,
+    fetchUserById,
+    fetchUsers,
+    getCurrentUserId,
+    getToken,
+    toggleFollow,
+    updateUser,
+    uploadSingleImage,
+} from '../../services'
 
 const cleanPhoneNumber = value => {
     return String(value || '').replace(/\D/g, '')
@@ -64,11 +74,13 @@ function ProfilePage() {
     })
 
 
-    const currentUserId = localStorage.getItem('userId')
-        ? Number(localStorage.getItem('userId'))
-        : null
+    const currentUserId = getCurrentUserId()
+    const currentUsername = decodeJwtPayload(getToken())?.sub
 
-    const isOwner = user && Number(user.id) === Number(currentUserId)
+    const isOwner = user && (
+        Number(user.id) === Number(currentUserId) ||
+        (!targetUsername && user.username === currentUsername)
+    )
 
     const [followModalType, setFollowModalType] = useState(null)
     const [followUsers, setFollowUsers] = useState([])
@@ -91,43 +103,54 @@ function ProfilePage() {
         return []
     }
 
+    const loadFollowCounts = useCallback((userId, token) => {
+        fetchFollowers(userId, token)
+            .then(data => {
+                const uniqueFollowersCount = Array.isArray(data) ? new Set(data.map(u => u.id)).size : 0;
+                setFollowersCount(uniqueFollowersCount);
+
+                if (Array.isArray(data)) {
+                    const amIFollowing = data.some(u => Number(u.id) === Number(currentUserId));
+                    setIsFollowing(amIFollowing);
+                }
+            })
+            .catch(() => setFollowersCount(0))
+
+        fetchFollowing(userId, token)
+            .then(data => {
+                const uniqueFollowingCount = Array.isArray(data) ? new Set(data.map(u => u.id)).size : 0;
+                setFollowingCount(uniqueFollowingCount);
+            })
+            .catch(() => setFollowingCount(0))
+    }, [currentUserId])
+
     useEffect(() => {
         let cancelled = false
 
         const loadProfile = async () => {
-            const token = localStorage.getItem('token')
+            const token = getToken()
 
             if (!token) {
                 navigate('/')
                 return
             }
 
-            let payload
+            const payload = decodeJwtPayload(token)
 
-            try {
-                payload = JSON.parse(atob(token.split('.')[1]))
-            } catch {
+            if (!payload) {
                 navigate('/')
                 return
             }
 
             const myUsername = payload.sub
-            const headers = { Authorization: `Bearer ${token}` }
 
             const usernameToLoad = targetUsername || myUsername
 
             try {
-                const [usersResponse, postsResponse] = await Promise.all([
-                    fetch(`${API_BASE_URL}/users`, { headers }),
-                    fetch(`${API_BASE_URL}/posts`, { headers }),
+                const [users, allPosts] = await Promise.all([
+                    fetchUsers(token),
+                    fetchPosts({ token }),
                 ])
-
-                if (!usersResponse.ok || !postsResponse.ok) {
-                    throw new Error('Failed to load profile.')
-                }
-
-                const users = await usersResponse.json()
-                const allPosts = await postsResponse.json()
 
                 const basicUser = users.find(u => u.username === usernameToLoad)
 
@@ -139,16 +162,10 @@ function ProfilePage() {
                 let fullUser = basicUser
 
                 try {
-                    const userDetailsResponse = await fetch(`${API_BASE_URL}/users/${basicUser.id}`, {
-                        headers,
-                    })
-
-                    if (userDetailsResponse.ok) {
-                        const userDetails = await userDetailsResponse.json()
-                        fullUser = {
-                            ...basicUser,
-                            ...userDetails,
-                        }
+                    const userDetails = await fetchUserById(basicUser.id, token)
+                    fullUser = {
+                        ...basicUser,
+                        ...userDetails,
                     }
                 } catch {
                     fullUser = basicUser
@@ -169,7 +186,7 @@ function ProfilePage() {
                     profilePicture: fullUser.profilePicture || '',
                 })
 
-                loadFollowCounts(fullUser.id, headers)
+                loadFollowCounts(fullUser.id, token)
 
                 const myPosts = allPosts
                     .filter(post => Number(post.userId) === Number(fullUser.id))
@@ -189,7 +206,7 @@ function ProfilePage() {
         return () => {
             cancelled = true
         }
-    }, [navigate, targetUsername])
+    }, [loadFollowCounts, navigate, targetUsername])
 
     useEffect(() => {
         return () => {
@@ -198,29 +215,6 @@ function ProfilePage() {
             }
         }
     }, [])
-
-    const loadFollowCounts = (userId, headers) => {
-        fetch(`${API_BASE_URL}/users/${userId}/followers`, { headers })
-            .then(res => res.json())
-            .then(data => {
-                const uniqueFollowersCount = Array.isArray(data) ? new Set(data.map(u => u.id)).size : 0;
-                setFollowersCount(uniqueFollowersCount);
-
-                if (Array.isArray(data)) {
-                    const amIFollowing = data.some(u => Number(u.id) === Number(currentUserId));
-                    setIsFollowing(amIFollowing);
-                }
-            })
-            .catch(() => setFollowersCount(0))
-
-        fetch(`${API_BASE_URL}/users/${userId}/following`, { headers })
-            .then(res => res.json())
-            .then(data => {
-                const uniqueFollowingCount = Array.isArray(data) ? new Set(data.map(u => u.id)).size : 0;
-                setFollowingCount(uniqueFollowingCount);
-            })
-            .catch(() => setFollowingCount(0))
-    }
 
     const resetEditFormToCurrentUser = () => {
         if (!user) return
@@ -246,19 +240,14 @@ function ProfilePage() {
         setLoadingFollow(true)
         setFollowUsers([])
 
-        const token = localStorage.getItem('token')
+        const token = getToken()
 
         try {
-            const res = await fetch(`${API_BASE_URL}/users/${user.id}/${type}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
+            const data = type === 'followers'
+                ? await fetchFollowers(user.id, token)
+                : await fetchFollowing(user.id, token)
 
-            if (res.ok) {
-                const data = await res.json()
-                setFollowUsers(data)
-            } else {
-                console.error(`Failed to fetch ${type}`)
-            }
+            setFollowUsers(data)
         } catch (error) {
             console.error('Error fetching follow data:', error)
         } finally {
@@ -298,53 +287,10 @@ function ProfilePage() {
     }
 
     const uploadProfilePicture = async file => {
-        const formData = new FormData()
-        formData.append('file', file)
-
-        const uploadResponse = await fetch(`${UPLOAD_API_BASE_URL}/image`, {
-            method: 'POST',
-            body: formData,
-        })
-
-        const uploadData = await uploadResponse.json().catch(() => null)
-
-        if (!uploadResponse.ok) {
-            throw new Error(uploadData?.message || 'Image upload failed.')
-        }
-
-        return uploadData?.url || ''
+        return uploadSingleImage(file, getToken())
     }
 
-    const getErrorMessageFromResponse = async res => {
-        let errorMessage = 'Failed to update profile.'
-
-        try {
-            const errorData = await res.json()
-
-            if (typeof errorData === 'string') {
-                errorMessage = errorData
-            } else if (errorData?.message) {
-                errorMessage = errorData.message
-            } else if (errorData?.error) {
-                errorMessage = errorData.error
-            }
-        } catch {
-            try {
-                const errorText = await res.text()
-
-                if (errorText) {
-                    errorMessage = errorText
-                }
-            } catch {
-                //
-            }
-        }
-
-        return errorMessage
-    }
-
-    const handleSaveError = async (res, finalProfilePictureUrl) => {
-        const errorMessage = await getErrorMessageFromResponse(res)
+    const handleSaveError = (errorMessage, finalProfilePictureUrl) => {
         const normalizedMessage = errorMessage.toLowerCase()
 
         const isUsernameTakenError =
@@ -383,7 +329,7 @@ function ProfilePage() {
         setSaveError('')
         setIsSaving(true)
 
-        const token = localStorage.getItem('token')
+        const token = getToken()
 
         try {
             let finalProfilePictureUrl = user.profilePicture || ''
@@ -417,21 +363,11 @@ function ProfilePage() {
                 delete bodyToSend.phoneNumber
             }
 
-            const res = await fetch(`${API_BASE_URL}/users/${user.id}`, {
-                method: 'PUT',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(bodyToSend),
+            const updatedUser = await updateUser({
+                token,
+                userId: user.id,
+                userData: bodyToSend,
             })
-
-            if (!res.ok) {
-                await handleSaveError(res, finalProfilePictureUrl)
-                return
-            }
-
-            const updatedUser = await res.json()
             const updatedPhoneNumber = getPhoneNumberFromUserObject(updatedUser)
 
             if (resetUsernameTimeoutRef.current) {
@@ -454,7 +390,7 @@ function ProfilePage() {
             setSaveError('')
             setEditing(false)
         } catch (error) {
-            setSaveError(error.message || 'Cannot connect to backend.')
+            handleSaveError(error.message || 'Cannot connect to backend.', user.profilePicture || '')
         } finally {
             setIsSaving(false)
         }
@@ -467,43 +403,24 @@ function ProfilePage() {
         setShowCreateModal(false)
     }
 
-    // const handleToggleFollow = async () => {
-    //     const token = localStorage.getItem('token')
-    //     const method = isFollowing ? 'DELETE' : 'POST'
-    //
-    //     try {
-    //         const res = await fetch(`${API_BASE_URL}/users/${currentUserId}/following/${user.id}`, {
-    //             method,
-    //             headers: { Authorization: `Bearer ${token}` }
-    //         })
-    //
-    //         if (res.ok) {
-    //             setIsFollowing(!isFollowing)
-    //             setFollowersCount(prev => isFollowing ? prev - 1 : prev + 1)
-    //         }
-    //     } catch (error) {
-    //         console.error('Error toggling follow:', error)
-    //     }
-    // }
-
     const handleToggleFollow = async () => {
         if (isTogglingFollow) return;
 
         setIsTogglingFollow(true); // Punem lacătul
 
-        const token = localStorage.getItem('token')
+        const token = getToken()
         const method = isFollowing ? 'DELETE' : 'POST'
 
         try {
-            const res = await fetch(`${API_BASE_URL}/users/${currentUserId}/following/${user.id}`, {
-                method,
-                headers: { Authorization: `Bearer ${token}` }
+            await toggleFollow({
+                token,
+                currentUserId,
+                targetUserId: user.id,
+                isFollowing,
             })
 
-            if (res.ok) {
-                setIsFollowing(!isFollowing)
-                setFollowersCount(prev => method === 'DELETE' ? Math.max(0, prev - 1) : prev + 1)
-            }
+            setIsFollowing(!isFollowing)
+            setFollowersCount(prev => method === 'DELETE' ? Math.max(0, prev - 1) : prev + 1)
         } catch (error) {
             console.error('Error toggling follow:', error)
         } finally {

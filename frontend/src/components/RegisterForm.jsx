@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-const AUTH_API_BASE_URL = 'http://localhost:9090/auth'
-const UPLOAD_API_BASE_URL = 'http://localhost:9090/uploads'
+import { persistAuthSession, registerWithProfilePicture } from '../services'
 
 function RegisterForm({ setMessage, setError, goToLogin }) {
     const navigate = useNavigate()
@@ -57,69 +55,8 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
         setIsSubmitting(true)
 
         try {
-            let uploadedImageUrl = ''
-
-            if (profilePictureFile) {
-                const formData = new FormData()
-                formData.append('file', profilePictureFile)
-
-                const uploadResponse = await fetch(`${UPLOAD_API_BASE_URL}/image`, {
-                    method: 'POST',
-                    body: formData,
-                })
-
-                const uploadText = await uploadResponse.text()
-                const uploadData = uploadText ? JSON.parse(uploadText) : null
-
-                if (!uploadResponse.ok) {
-                    setError(uploadData?.message || 'Image upload failed!')
-                    setIsSubmitting(false)
-                    return
-                }
-
-                uploadedImageUrl = uploadData.url
-            }
-
-            const requestBody = {
-                username: registerData.username,
-                email: registerData.email,
-                password: registerData.password,
-                fullName: registerData.fullName,
-                phoneNumber: registerData.phoneNumber,
-                bio: registerData.bio,
-                profilePicture: uploadedImageUrl,
-            }
-
-            const response = await fetch(`${AUTH_API_BASE_URL}/register`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody),
-            })
-
-            const responseText = await response.text()
-            let data = null
-
-            try {
-                data = responseText ? JSON.parse(responseText) : null
-            } catch {
-                data = responseText
-            }
-
-            if (!response.ok) {
-                setError(typeof data === 'string' ? data : 'Register failed!')
-                setIsSubmitting(false)
-                return
-            }
-
-            localStorage.setItem('token', data.token)
-            localStorage.setItem('userId', data.userId)
-            localStorage.setItem('username', data.username)
-
-            if (data.phoneNumber) {
-                localStorage.setItem('phoneNumber', data.phoneNumber)
-            }
+            const data = await registerWithProfilePicture(registerData, profilePictureFile)
+            persistAuthSession(data)
 
             setMessage('Registration successful!')
 
@@ -136,8 +73,8 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
 
             setProfilePictureFile(null)
             navigate('/home')
-        } catch {
-            setError('Cannot connect to backend.')
+        } catch (error) {
+            setError(error.message || 'Cannot connect to backend.')
         } finally {
             setIsSubmitting(false)
         }

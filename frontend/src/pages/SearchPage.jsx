@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import PostCard from '../components/postcard/Postcard.jsx'
-
-const API_BASE_URL = 'http://localhost:9090'
+import { fetchSearchPosts, getCurrentUserId, getToken } from '../services'
 
 function SearchPage() {
     const [activeItem, setActiveItem] = useState('search')
@@ -12,11 +11,8 @@ function SearchPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [onlyMine, setOnlyMine] = useState(false)
 
-    const currentUserId = localStorage.getItem('userId')
-        ? Number(localStorage.getItem('userId'))
-        : null
-
-    const token = localStorage.getItem('token')
+    const currentUserId = getCurrentUserId()
+    const token = getToken()
 
     useEffect(() => {
         const fetchPosts = async () => {
@@ -30,64 +26,7 @@ function SearchPage() {
                     return
                 }
 
-                const headers = {
-                    Authorization: `Bearer ${token}`,
-                }
-
-                const postsUrl = currentUserId
-                    ? `${API_BASE_URL}/posts?currentUserId=${currentUserId}`
-                    : `${API_BASE_URL}/posts`
-
-                const [postsResponse, usersResponse, commentsResponse] = await Promise.all([
-                    fetch(postsUrl, { headers }),
-                    fetch(`${API_BASE_URL}/users`, { headers }),
-                    fetch(`${API_BASE_URL}/comments`, { headers }),
-                ])
-
-                if (!postsResponse.ok) {
-                    throw new Error('Failed to fetch posts')
-                }
-
-                if (!usersResponse.ok) {
-                    throw new Error('Failed to fetch users')
-                }
-
-                const postsData = await postsResponse.json()
-                const usersData = await usersResponse.json()
-                const commentsData = commentsResponse.ok ? await commentsResponse.json() : []
-
-                const usersMap = new Map(
-                    usersData.map(user => [Number(user.id), user])
-                )
-
-                const enrichedPosts = postsData
-                    .map(post => {
-                        const author = usersMap.get(Number(post.userId))
-
-                        const postComments = commentsData
-                            .filter(comment => Number(comment.postId) === Number(post.id))
-                            .map(comment => {
-                                const commentAuthor = usersMap.get(Number(comment.userId))
-
-                                return {
-                                    ...comment,
-                                    username: comment.username || commentAuthor?.username || 'user',
-                                    userProfilePicture:
-                                        comment.userProfilePicture || commentAuthor?.profilePicture || '',
-                                }
-                            })
-
-                        return {
-                            ...post,
-                            username: post.username || author?.username || 'user',
-                            userProfilePicture:
-                                post.userProfilePicture || author?.profilePicture || '',
-                            comments: postComments,
-                        }
-                    })
-                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-
-                setPosts(enrichedPosts)
+                setPosts(await fetchSearchPosts({ token, currentUserId }))
             } catch (err) {
                 console.error('Search page fetch error:', err)
                 setError('Could not load posts.')

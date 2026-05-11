@@ -7,6 +7,7 @@ import {
     groupNotifications,
     markNotificationsAsSeen,
 } from './notificationHelpers'
+import { getCurrentUserId, getToken } from '../../../services'
 
 function NotificationsContent() {
     const [activeItem, setActiveItem] = useState('notifications')
@@ -14,10 +15,8 @@ function NotificationsContent() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
 
-    const token = localStorage.getItem('token')
-    const currentUserId = localStorage.getItem('userId')
-        ? Number(localStorage.getItem('userId'))
-        : null
+    const token = getToken()
+    const currentUserId = getCurrentUserId()
 
     useEffect(() => {
         const loadNotifications = async () => {

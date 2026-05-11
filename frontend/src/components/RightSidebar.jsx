@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
+import {
+    fetchCurrentUser,
+    fetchFollowing,
+    fetchUsers,
+    getToken,
+    toggleFollow as toggleFollowRequest,
+} from '../services'
 
-const API_BASE_URL = 'http://localhost:9090'
 const FOOTER_LINKS = ['About', 'Help', 'Press', 'API', 'Jobs', 'Privacy', 'Terms', 'Locations', 'Language', 'Meta Verified']
 
 function RightSidebar() {
@@ -9,16 +15,16 @@ function RightSidebar() {
     const [followed, setFollowed] = useState({})
 
     useEffect(() => {
-        const token = localStorage.getItem('token')
-        const headers = { 'Authorization': `Bearer ${token}` }
+        const token = getToken()
+        if (!token) return
 
-        fetch(`${API_BASE_URL}/users`, { headers })
-            .then(r => r.json())
-            .then(users => {
-                const payload = JSON.parse(atob(token.split('.')[1]))
-                const myUsername = payload.sub
-
-                const me = users.find(u => u.username === myUsername)
+        const loadSuggestions = async () => {
+            try {
+                const [users, me] = await Promise.all([
+                    fetchUsers(token),
+                    fetchCurrentUser({ token }),
+                ])
+                const myUsername = me?.username
                 const others = users
                     .filter(u => u.username !== myUsername)
                     .sort(() => Math.random() - 0.5)
@@ -28,47 +34,38 @@ function RightSidebar() {
                 setSuggestions(others)
 
                 if (me) {
-                    fetch(`${API_BASE_URL}/users/${me.id}/following`, { headers })
-                        .then(res => {
-                            if (res.ok) return res.json()
-                            throw new Error('Failed to fetch following')
-                        })
-                        .then(followingList => {
-                            const initialFollowedState = {}
+                    const followingList = await fetchFollowing(me.id, token)
+                    const initialFollowedState = {}
 
-                            followingList.forEach(u => {
-                                initialFollowedState[u.id] = true
-                            })
+                    followingList.forEach(u => {
+                        initialFollowedState[u.id] = true
+                    })
 
-                            setFollowed(initialFollowedState)
-                        })
-                        .catch(err => console.error('Could not load following status:', err))
+                    setFollowed(initialFollowedState)
                 }
-            })
-            .catch(() => {})
+            } catch (error) {
+                console.error('Could not load suggestions:', error)
+            }
+        }
+
+        loadSuggestions()
     }, [])
 
     const toggleFollow = async (targetId) => {
         if (!currentUser) return
 
         const isCurrentlyFollowing = followed[targetId]
-        const token = localStorage.getItem('token')
-        const headers = { 'Authorization': `Bearer ${token}` }
+        const token = getToken()
 
         setFollowed(prev => ({ ...prev, [targetId]: !isCurrentlyFollowing }))
 
         try {
-            const method = isCurrentlyFollowing ? 'DELETE' : 'POST'
-
-            const res = await fetch(`${API_BASE_URL}/users/${currentUser.id}/following/${targetId}`, {
-                method,
-                headers,
+            await toggleFollowRequest({
+                token,
+                currentUserId: currentUser.id,
+                targetUserId: targetId,
+                isFollowing: isCurrentlyFollowing,
             })
-
-            if (!res.ok) {
-                setFollowed(prev => ({ ...prev, [targetId]: isCurrentlyFollowing }))
-                console.error('Eroare la backend pentru Follow/Unfollow')
-            }
         } catch (error) {
             setFollowed(prev => ({ ...prev, [targetId]: isCurrentlyFollowing }))
             console.error('Nu s-a putut conecta la server:', error)

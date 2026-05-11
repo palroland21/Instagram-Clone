@@ -88,7 +88,7 @@ function CommentsSection({ showComments, sortedComments, handleCommentVote }) {
                                         padding: 0,
                                         display: 'flex',
                                         alignItems: 'center',
-                                        color: Boolean(comment.dislikedByCurrentUser)
+                                        color: comment.dislikedByCurrentUser
                                             ? '#ff3040'
                                             : '#f5f5f5',
                                     }}
