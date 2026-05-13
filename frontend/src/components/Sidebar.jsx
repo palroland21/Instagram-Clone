@@ -1,453 +1,88 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { clearAuthSession } from '../services';
 import {
-    HomeIcon,
-    SearchIcon,
-    MessagesIcon,
-    HeartIcon,
-    PlusIcon,
-    LogoutIcon,
-} from './Icons'
-import CreatePostModal from './create-post/CreatePostModal.jsx'
-import { fetchNotificationsData } from '../pages/notification-page/notification-page-components/notificationsApi'
-import {
-    clearAuthSession,
-    fetchCurrentUser,
-    getCurrentUserId,
-    getToken,
-} from '../services'
-import {
-    buildNotifications,
-    hasUnreadNotifications,
-    markNotificationsAsSeen,
-    NOTIFICATIONS_SEEN_EVENT,
-} from '../pages/notification-page/notification-page-components/notificationHelpers'
-
-const NOTIFICATION_CHECK_INTERVAL_MS = 5000
+    buildDesktopNavItems,
+    buildMobileNavItems,
+} from './sidebar/sidebarItems';
+import DesktopSidebar from './sidebar/DesktopSidebar';
+import MobileSidebar from './sidebar/MobileSidebar';
+import useSidebarUser from './sidebar/useSidebarUser';
+import useUnreadNotifications from './sidebar/useUnreadNotifications';
 
 function Sidebar({ activeItem, setActiveItem, isMobile, onPostCreated }) {
-    const navigate = useNavigate()
-    const [showCreateModal, setShowCreateModal] = useState(false)
-    const [currentUser, setCurrentUser] = useState(null)
-    const [hasUnread, setHasUnread] = useState(false)
-
-    useEffect(() => {
-        const token = getToken()
-        const storedUserId = getCurrentUserId()
-
-        if (!token) return
-
-        const loadCurrentUser = async () => {
-            try {
-                const me = await fetchCurrentUser({ token, storedUserId })
-                setCurrentUser(me || null)
-            } catch (error) {
-                console.error('Failed to load current user:', error)
-                setCurrentUser(null)
-            }
-        }
-
-        loadCurrentUser()
-    }, [])
-
-    useEffect(() => {
-        const token = getToken()
-        const storedUserId = getCurrentUserId()
-
-        if (!token || !storedUserId) {
-            return
-        }
-
-        let cancelled = false
-
-        const checkUnreadNotifications = async () => {
-            try {
-                const data = await fetchNotificationsData({
-                    token,
-                    currentUserId: storedUserId,
-                })
-
-                const notificationsList = buildNotifications({
-                    postsData: data.postsData,
-                    commentsData: data.commentsData,
-                    postVotesData: data.postVotesData,
-                    usersData: data.usersData,
-                    currentUserId: storedUserId,
-                })
-
-                const unread = hasUnreadNotifications(
-                    storedUserId,
-                    notificationsList
-                )
-
-                if (!cancelled) {
-                    setHasUnread(unread)
-                }
-            } catch (error) {
-                console.error('Failed to check unread notifications:', error)
-            }
-        }
-
-        const handleNotificationsSeen = () => {
-            setHasUnread(false)
-        }
-
-        checkUnreadNotifications()
-
-        const intervalId = setInterval(
-            checkUnreadNotifications,
-            NOTIFICATION_CHECK_INTERVAL_MS
-        )
-
-        window.addEventListener(
-            NOTIFICATIONS_SEEN_EVENT,
-            handleNotificationsSeen
-        )
-
-        return () => {
-            cancelled = true
-            clearInterval(intervalId)
-            window.removeEventListener(
-                NOTIFICATIONS_SEEN_EVENT,
-                handleNotificationsSeen
-            )
-        }
-    }, [])
+    const navigate = useNavigate();
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const currentUser = useSidebarUser();
+    const { hasUnread, markSeen } = useUnreadNotifications();
 
     const avatarSrc =
         currentUser?.profilePicture ||
-        `https://i.pravatar.cc/150?u=${currentUser?.id || 'me'}`
+        `https://i.pravatar.cc/150?u=${currentUser?.id || 'me'}`;
 
-    const navItems = [
-        {
-            id: 'home',
-            label: 'Home',
-            path: '/home',
-            icon: <HomeIcon filled={activeItem === 'home'} />,
-        },
-        {
-            id: 'search',
-            label: 'Search',
-            path: '/search',
-            icon: <SearchIcon />,
-        },
-        {
-            id: 'messages',
-            label: 'Messages',
-            icon: <MessagesIcon />,
-        },
-        {
-            id: 'notifications',
-            label: 'Notification',
-            path: '/notifications',
-            icon: <HeartIcon />,
-        },
-        {
-            id: 'create',
-            label: 'Create',
-            icon: <PlusIcon />,
-            action: () => setShowCreateModal(true),
-        },
-        {
-            id: 'profile',
-            label: 'Profile',
-            path: '/profile',
-            icon: (
-                <img
-                    src={avatarSrc}
-                    alt="profile"
-                    style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                    }}
-                />
-            ),
-        },
-    ]
+    const openCreateModal = () => {
+        setShowCreateModal(true);
+    };
 
-    const handleItemClick = (item) => {
+    const closeCreateModal = () => {
+        setShowCreateModal(false);
+    };
+
+    const handleItemClick = item => {
         if (item.action) {
-            item.action()
-            return
+            item.action();
+            return;
         }
 
-        setActiveItem(item.id)
+        setActiveItem(item.id);
 
         if (item.id === 'notifications') {
-            const storedUserId = getCurrentUserId()
-
-            markNotificationsAsSeen(storedUserId)
-            setHasUnread(false)
+            markSeen();
         }
 
         if (item.path) {
-            navigate(item.path)
+            navigate(item.path);
         }
-    }
+    };
 
     const handleLogout = () => {
-        clearAuthSession()
-        navigate('/')
-    }
+        clearAuthSession();
+        navigate('/');
+    };
+
+    const sharedProps = {
+        activeItem,
+        hasUnread,
+        onCloseCreateModal: closeCreateModal,
+        onItemClick: handleItemClick,
+        onPostCreated,
+        showCreateModal,
+    };
 
     if (isMobile) {
-        const mobileItems = [
-            {
-                id: 'home',
-                path: '/home',
-                icon: <HomeIcon filled={activeItem === 'home'} />,
-            },
-            {
-                id: 'search',
-                path: '/search',
-                icon: <SearchIcon />,
-            },
-            {
-                id: 'create',
-                icon: <PlusIcon />,
-                action: () => setShowCreateModal(true),
-            },
-            {
-                id: 'notifications',
-                path: '/notifications',
-                icon: <HeartIcon filled={false} />,
-            },
-            {
-                id: 'profile',
-                path: '/profile',
-                icon: (
-                    <img
-                        src={avatarSrc}
-                        alt="profile"
-                        style={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: '50%',
-                            objectFit: 'cover',
-                            border:
-                                activeItem === 'profile'
-                                    ? '2px solid white'
-                                    : '2px solid transparent',
-                        }}
-                    />
-                ),
-            },
-        ]
-
         return (
-            <>
-                <div
-                    style={{
-                        position: 'fixed',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        height: 50,
-                        background: '#000',
-                        borderTop: '1px solid #262626',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-around',
-                        zIndex: 100,
-                        paddingBottom: 'env(safe-area-inset-bottom)',
-                    }}
-                >
-                    {mobileItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => handleItemClick(item)}
-                            style={{
-                                position: 'relative',
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: '8px 12px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                opacity: activeItem === item.id ? 1 : 0.7,
-                                transition: 'opacity 0.15s',
-                            }}
-                        >
-                            {item.icon}
-
-                            {item.id === 'notifications' && hasUnread && (
-                                <UnreadNotificationBell mobile />
-                            )}
-                        </button>
-                    ))}
-                </div>
-
-                {showCreateModal && (
-                    <CreatePostModal
-                        onClose={() => setShowCreateModal(false)}
-                        onPostCreated={onPostCreated}
-                    />
-                )}
-            </>
-        )
+            <MobileSidebar
+                {...sharedProps}
+                items={buildMobileNavItems({
+                    activeItem,
+                    avatarSrc,
+                    onCreate: openCreateModal,
+                })}
+            />
+        );
     }
 
     return (
-        <>
-            <div
-                style={{
-                    position: 'fixed',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 244,
-                    background: '#000',
-                    borderRight: '1px solid #262626',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    padding: '8px 12px 20px',
-                    zIndex: 100,
-                }}
-            >
-                <div style={{ padding: '25px 12px 16px' }}>
-                    <span
-                        style={{
-                            fontFamily: 'Georgia, serif',
-                            fontSize: 22,
-                            fontWeight: 'bold',
-                            color: 'white',
-                            letterSpacing: '-0.5px',
-                            display: 'block',
-                        }}
-                    >
-                        Instagram
-                    </span>
-                </div>
-
-                <nav
-                    style={{
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 4,
-                    }}
-                >
-                    {navItems.map((item) => {
-                        const isNotificationsItem = item.id === 'notifications'
-                        const shouldBeBold =
-                            activeItem === item.id ||
-                            (isNotificationsItem && hasUnread)
-
-                        return (
-                            <button
-                                key={item.id}
-                                onClick={() => handleItemClick(item)}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 16,
-                                    padding: '12px 12px',
-                                    borderRadius: 8,
-                                    border: 'none',
-                                    background: 'transparent',
-                                    cursor: 'pointer',
-                                    color: 'white',
-                                    fontSize: 15,
-                                    fontWeight: shouldBeBold ? 700 : 400,
-                                    transition: 'background 0.15s',
-                                    width: '100%',
-                                    textAlign: 'left',
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = '#1a1a1a'
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'transparent'
-                                }}
-                            >
-                                <span style={{ flexShrink: 0 }}>
-                                    {item.icon}
-                                </span>
-
-                                <span
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                    }}
-                                >
-                                    {item.label}
-
-                                    {isNotificationsItem && hasUnread && (
-                                        <UnreadNotificationBell />
-                                    )}
-                                </span>
-                            </button>
-                        )
-                    })}
-                </nav>
-
-                <button
-                    onClick={handleLogout}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 16,
-                        padding: '12px 12px',
-                        borderRadius: 8,
-                        border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        color: 'white',
-                        fontSize: 15,
-                        fontWeight: 400,
-                        width: '100%',
-                        textAlign: 'left',
-                        transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#1a1a1a'
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent'
-                    }}
-                >
-                    <LogoutIcon />
-                    <span>Log out</span>
-                </button>
-            </div>
-
-            {showCreateModal && (
-                <CreatePostModal
-                    onClose={() => setShowCreateModal(false)}
-                    onPostCreated={onPostCreated}
-                />
-            )}
-        </>
-    )
+        <DesktopSidebar
+            {...sharedProps}
+            items={buildDesktopNavItems({
+                activeItem,
+                avatarSrc,
+                onCreate: openCreateModal,
+            })}
+            onLogout={handleLogout}
+        />
+    );
 }
 
-function UnreadNotificationBell({ mobile = false }) {
-    return (
-        <span
-            style={{
-                position: mobile ? 'absolute' : 'static',
-                top: mobile ? 3 : 'auto',
-                right: mobile ? 4 : 'auto',
-                width: mobile ? 18 : 20,
-                height: mobile ? 18 : 20,
-                borderRadius: '50%',
-                background: '#ed4956',
-                color: 'white',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: mobile ? 9 : 10,
-                lineHeight: 1,
-                boxShadow: '0 0 0 2px #000',
-            }}
-        >
-            🔔
-        </span>
-    )
-}
-
-export default Sidebar
+export default Sidebar;

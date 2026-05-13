@@ -18,7 +18,7 @@ function HomePage() {
         return () => window.removeEventListener('resize', handleResize)
     }, [])
 
-    // Re-mount Feed after a new post is created
+    // re-mount feed after a new post is created
     const handlePostCreated = useCallback(() => {
         setFeedKey(k => k + 1)
     }, [])
@@ -32,7 +32,6 @@ function HomePage() {
                 onPostCreated={handlePostCreated}
             />
 
-            {/* Main content */}
             <div style={{
                 marginLeft: isMobile ? 0 : 244,
                 marginBottom: isMobile ? 60 : 0,
@@ -40,7 +39,7 @@ function HomePage() {
                 justifyContent: 'center',
                 minHeight: '100vh',
             }}>
-                {/* Center Feed */}
+
                 <div style={{
                     width: '100%',
                     maxWidth: isMobile ? '100%' : 470,
@@ -49,7 +48,6 @@ function HomePage() {
                     <Feed key={feedKey} />
                 </div>
 
-                {/* Right Sidebar */}
                 {showRightSidebar && (
                     <div style={{ width: 320, flexShrink: 0, padding: '0 0 0 28px' }}>
                         <RightSidebar />
