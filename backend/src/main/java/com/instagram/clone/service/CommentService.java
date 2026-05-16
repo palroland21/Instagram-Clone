@@ -38,6 +38,8 @@ public class CommentService {
         Post post = postRepository.findById(request.getPostId())
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
+        validateText(request.getText());
+
         Comment comment = new Comment();
         comment.setUser(user);
         comment.setPost(post);
@@ -84,21 +86,41 @@ public class CommentService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Post post = postRepository.findById(request.getPostId())
-                .orElseThrow(() -> new RuntimeException("Post not found"));
+        if (!comment.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized: You can only edit your own comments.");
+        }
 
-        comment.setUser(user);
-        comment.setPost(post);
+        validateText(request.getText());
+
         comment.setText(request.getText());
-        comment.setPictureUrl(request.getPictureUrl());
+        if (request.getPictureUrl() != null) {
+            comment.setPictureUrl(request.getPictureUrl());
+        }
         comment.setPostedAt(request.getPostedAt() != null ? request.getPostedAt() : comment.getPostedAt());
 
         Comment updated = commentRepository.save(comment);
         return mapToResponse(updated, request.getUserId());
     }
 
+    public void delete(Long id, Long currentUserId) {
+        Comment comment = commentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Comment not found"));
+
+        if (!comment.getUser().getId().equals(currentUserId)) {
+            throw new RuntimeException("Unauthorized: You can only delete your own comments.");
+        }
+
+        commentRepository.delete(comment);
+    }
+
     public void delete(Long id) {
         commentRepository.deleteById(id);
+    }
+
+    private void validateText(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            throw new RuntimeException("A comment must contain text.");
+        }
     }
 
     private void sortByVotesDesc(List<CommentResponse> responses) {
