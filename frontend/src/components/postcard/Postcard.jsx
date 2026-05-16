@@ -8,6 +8,7 @@ import PostCaption from './postcard-components/PostCaption.jsx'
 import CommentsSection from './postcard-components/CommentsSection.jsx'
 import AddComment from './postcard-components/AddComment.jsx'
 import {
+    closePostComments,
     createComment,
     deleteComment,
     deletePost,
@@ -67,6 +68,7 @@ function PostCard({ post: initialPost, currentUserId }) {
     const isCurrentUserValid = () => currentUserId !== null && currentUserId !== undefined && !Number.isNaN(Number(currentUserId))
 
     const isOwner = Number(currentUserId) === Number(post.userId)
+    const commentsClosed = post.status === 'OUTDATED'
 
     const handleDeletePost = async () => {
         try {
@@ -83,6 +85,26 @@ function PostCard({ post: initialPost, currentUserId }) {
 
     const handleReportPost = () => {
         alert("Postarea a fost raportată echipei de moderare.")
+    }
+
+    const handleCloseComments = async () => {
+        try {
+            const updatedPost = await closePostComments({
+                token,
+                postId: post.id,
+                userId: currentUserId,
+            })
+
+            setPost((prev) => ({
+                ...prev,
+                ...updatedPost,
+                userProfilePicture: updatedPost.userProfilePicture || prev.userProfilePicture,
+            }))
+            setComments(updatedPost.comments || [])
+        } catch (error) {
+            console.error('Close comments error:', error)
+            alert('Failed to close comments. Please try again later.')
+        }
     }
 
     const openEditModal = () => {
@@ -130,7 +152,11 @@ function PostCard({ post: initialPost, currentUserId }) {
                 payload,
             })
 
-            setPost(updatedPost)
+            setPost((prev) => ({
+                ...prev,
+                ...updatedPost,
+                userProfilePicture: updatedPost.userProfilePicture || prev.userProfilePicture,
+            }))
             setIsEditing(false)
         } catch (error) {
             console.error("Eroare request update:", error)
@@ -139,6 +165,8 @@ function PostCard({ post: initialPost, currentUserId }) {
     }
 
     const handlePostVote = async (voteType) => {
+        if (isOwner) return
+
         if (!isCurrentUserValid()) {
             console.error('currentUserId missing')
             return
@@ -163,6 +191,12 @@ function PostCard({ post: initialPost, currentUserId }) {
     }
 
     const handleCommentVote = async (commentId, voteType) => {
+        const comment = comments.find((item) => Number(item.id) === Number(commentId))
+
+        if (comment && Number(comment.userId) === Number(currentUserId)) {
+            return
+        }
+
         if (!isCurrentUserValid()) {
             console.error('currentUserId missing')
             return
@@ -197,6 +231,7 @@ function PostCard({ post: initialPost, currentUserId }) {
 
     const handlePostComment = async () => {
         if (!commentText.trim()) return
+        if (commentsClosed) return
         if (!isCurrentUserValid()) {
             console.error('currentUserId missing')
             return
@@ -213,6 +248,11 @@ function PostCard({ post: initialPost, currentUserId }) {
             const enrichedComment = normalizeComment(newComment, new Map(), currentUserId)
 
             setComments((prev) => [...prev, enrichedComment])
+            setPost((prev) =>
+                prev.status === 'JUST_POSTED'
+                    ? { ...prev, status: 'FIRST_REACTIONS' }
+                    : prev
+            )
             setCommentText('')
             setShowComments(true)
         } catch (error) {
@@ -293,6 +333,7 @@ function PostCard({ post: initialPost, currentUserId }) {
                     onEditClick={openEditModal}
                     onDeleteClick={handleDeletePost}
                     onReportClick={handleReportPost}
+                    onCloseComments={handleCloseComments}
                 />
 
                 <PostMediaCarousel
@@ -307,6 +348,7 @@ function PostCard({ post: initialPost, currentUserId }) {
                         liked={liked} disliked={disliked} saved={saved}
                         setSaved={setSaved} handlePostVote={handlePostVote}
                         setShowComments={setShowComments}
+                        votingDisabled={isOwner}
                     />
                     <PostStats voteCount={voteCount} likeCount={likeCount} dislikeCount={dislikeCount} />
                     <PostCaption post={post} expanded={expanded} setExpanded={setExpanded} />
@@ -325,7 +367,12 @@ function PostCard({ post: initialPost, currentUserId }) {
                         onUpdateComment={handleUpdateComment}
                         onDeleteComment={handleDeleteComment}
                     />
-                    <AddComment commentText={commentText} setCommentText={setCommentText} handlePostComment={handlePostComment} />
+                    <AddComment
+                        commentText={commentText}
+                        setCommentText={setCommentText}
+                        handlePostComment={handlePostComment}
+                        disabled={commentsClosed}
+                    />
                 </div>
             </article>
 

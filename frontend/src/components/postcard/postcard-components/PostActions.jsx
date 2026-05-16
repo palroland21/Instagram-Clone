@@ -8,6 +8,7 @@ function PostActions({
                          setSaved,
                          handlePostVote,
                          setShowComments,
+                         votingDisabled = false,
                      }) {
     return (
         <div
@@ -21,10 +22,12 @@ function PostActions({
             <div style={{ display: 'flex', gap: 16 }}>
                 <button
                     onClick={() => handlePostVote('LIKE')}
+                    disabled={votingDisabled}
                     style={{
                         background: 'none',
                         border: 'none',
-                        cursor: 'pointer',
+                        cursor: votingDisabled ? 'not-allowed' : 'pointer',
+                        opacity: votingDisabled ? 0.35 : 1,
                         padding: 4,
                         display: 'flex',
                         alignItems: 'center',
@@ -35,10 +38,12 @@ function PostActions({
 
                 <button
                     onClick={() => handlePostVote('DISLIKE')}
+                    disabled={votingDisabled}
                     style={{
                         background: 'none',
                         border: 'none',
-                        cursor: 'pointer',
+                        cursor: votingDisabled ? 'not-allowed' : 'pointer',
+                        opacity: votingDisabled ? 0.35 : 1,
                         padding: 4,
                         display: 'flex',
                         alignItems: 'center',

@@ -163,10 +163,12 @@ function CommentsSection({
                                         <>
                                             <button
                                                 onClick={() => handleCommentVote(comment.id, 'LIKE')}
+                                                disabled={isOwner}
                                                 style={{
                                                     background: 'none',
                                                     border: 'none',
-                                                    cursor: 'pointer',
+                                                    cursor: isOwner ? 'not-allowed' : 'pointer',
+                                                    opacity: isOwner ? 0.35 : 1,
                                                     padding: 0,
                                                     display: 'flex',
                                                     alignItems: 'center',
@@ -180,10 +182,12 @@ function CommentsSection({
 
                                             <button
                                                 onClick={() => handleCommentVote(comment.id, 'DISLIKE')}
+                                                disabled={isOwner}
                                                 style={{
                                                     background: 'none',
                                                     border: 'none',
-                                                    cursor: 'pointer',
+                                                    cursor: isOwner ? 'not-allowed' : 'pointer',
+                                                    opacity: isOwner ? 0.35 : 1,
                                                     padding: 0,
                                                     display: 'flex',
                                                     alignItems: 'center',

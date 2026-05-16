@@ -12,9 +12,15 @@ export function normalizePost(post, usersMap = new Map()) {
     const normalizedComments = Array.isArray(post.comments)
         ? sortCommentsByVotes(post.comments.map((comment) => normalizeComment(comment, usersMap)))
         : []
+    const status = post.status === 'OUTDATED'
+        ? 'OUTDATED'
+        : normalizedComments.length > 0
+            ? 'FIRST_REACTIONS'
+            : post.status || 'JUST_POSTED'
 
     return {
         ...post,
+        status,
         userId: ownerId,
         username:
             post.username ||
@@ -133,6 +139,14 @@ export function deletePost({ token, postId, userId }) {
         method: 'DELETE',
         token,
         errorMessage: 'Failed to delete post',
+    })
+}
+
+export function closePostComments({ token, postId, userId }) {
+    return apiRequest(`/posts/${postId}/close-comments?userId=${userId}`, {
+        method: 'POST',
+        token,
+        errorMessage: 'Failed to close comments',
     })
 }
 
