@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Service
 public class PostService {
@@ -48,13 +50,14 @@ public class PostService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        validateCaption(request.getCaption());
         validatePictureUrls(request.getPictureUrls());
 
         Post post = new Post();
         post.setUser(user);
         post.setLocation(request.getLocation());
         post.setCaption(request.getCaption());
-        post.setTitle(request.getTitle());
+        post.setTitle(resolveTitle(request));
         post.setCreatedAt(LocalDateTime.now());
         post.setStatus(request.getStatus() != null ? request.getStatus() : PostStatus.JUST_POSTED);
         post.setTags(getOrCreateTags(request.getTagNames()));
@@ -73,7 +76,7 @@ public class PostService {
 
     public List<PostResponse> getAll() {
         List<PostResponse> responses = new ArrayList<>();
-        for (Post post : postRepository.findAll()) {
+        for (Post post : postRepository.findAllByOrderByCreatedAtDesc()) {
             responses.add(mapToResponse(post, null));
         }
         return responses;
@@ -81,9 +84,23 @@ public class PostService {
 
     public List<PostResponse> getAll(Long currentUserId) {
         List<PostResponse> responses = new ArrayList<>();
-        for (Post post : postRepository.findAll()) {
+        for (Post post : postRepository.findAllByOrderByCreatedAtDesc()) {
             responses.add(mapToResponse(post, currentUserId));
         }
+        return responses;
+    }
+
+    public List<PostResponse> search(String tag, String text, Long userId, Long currentUserId) {
+        List<PostResponse> responses = new ArrayList<>();
+
+        for (Post post : postRepository.searchPosts(
+                normalizeFilter(tag),
+                normalizeFilter(text),
+                userId
+        )) {
+            responses.add(mapToResponse(post, currentUserId));
+        }
+
         return responses;
     }
 
@@ -91,20 +108,21 @@ public class PostService {
         Post existing = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
 
-        // BARIERA DE SECURITATE: Doar proprietarul poate edita
+        //only the author can edit
         if (!existing.getUser().getId().equals(request.getUserId())) {
-            throw new RuntimeException("Neautorizat: Nu ai permisiunea să editezi această postare!");
+            throw new RuntimeException("Unauthorized: You don't have permission to edit this post!");
         }
 
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        validateCaption(request.getCaption());
         validatePictureUrls(request.getPictureUrls());
 
         existing.setUser(user);
         existing.setLocation(request.getLocation());
         existing.setCaption(request.getCaption());
-        existing.setTitle(request.getTitle());
+        existing.setTitle(resolveTitle(request));
 
         if (request.getStatus() != null) {
             existing.setStatus(request.getStatus());
@@ -123,9 +141,9 @@ public class PostService {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
 
-        // BARIERA DE SECURITATE: Doar proprietarul poate sterge
+        //only the author can delete
         if (!post.getUser().getId().equals(currentUserId)) {
-            throw new RuntimeException("Neautorizat: Nu ai permisiunea să ștergi această postare!");
+            throw new RuntimeException("Unauthorized: You don't have permission to delete this post!");
         }
 
         postRepository.delete(post);
@@ -138,6 +156,12 @@ public class PostService {
     private void validatePictureUrls(List<String> pictureUrls) {
         if (pictureUrls == null || pictureUrls.isEmpty()) {
             throw new RuntimeException("A post must contain at least one picture.");
+        }
+    }
+
+    private void validateCaption(String caption) {
+        if (caption == null || caption.trim().isEmpty()) {
+            throw new RuntimeException("A post must contain text.");
         }
     }
 
@@ -159,6 +183,7 @@ public class PostService {
 
     private List<Tag> getOrCreateTags(List<String> tagNames) {
         List<Tag> tags = new ArrayList<>();
+        Set<String> cleanTagNames = new LinkedHashSet<>();
 
         if (tagNames != null) {
             for (String tagName : tagNames) {
@@ -166,20 +191,52 @@ public class PostService {
                     continue;
                 }
 
-                String cleanTagName = tagName.trim().toLowerCase();
+                String cleanTagName = tagName.trim().replaceFirst("^#", "").toLowerCase();
 
-                Tag tag = tagRepository.findByName(cleanTagName)
-                        .orElseGet(() -> {
-                            Tag newTag = new Tag();
-                            newTag.setName(cleanTagName);
-                            return tagRepository.save(newTag);
-                        });
-
-                tags.add(tag);
+                if (!cleanTagName.isEmpty()) {
+                    cleanTagNames.add(cleanTagName);
+                }
             }
         }
 
+        if (cleanTagNames.isEmpty()) {
+            throw new RuntimeException("A post must contain at least one tag.");
+        }
+
+        for (String cleanTagName : cleanTagNames) {
+            Tag tag = tagRepository.findByName(cleanTagName)
+                    .orElseGet(() -> {
+                        Tag newTag = new Tag();
+                        newTag.setName(cleanTagName);
+                        return tagRepository.save(newTag);
+                    });
+
+            tags.add(tag);
+        }
+
         return tags;
+    }
+
+    private String resolveTitle(PostRequest request) {
+        if (request.getTitle() != null && !request.getTitle().trim().isEmpty()) {
+            return request.getTitle().trim();
+        }
+
+        String caption = request.getCaption();
+        if (caption == null || caption.trim().isEmpty()) {
+            return "Post";
+        }
+
+        String cleanCaption = caption.trim();
+        return cleanCaption.length() <= 60 ? cleanCaption : cleanCaption.substring(0, 60);
+    }
+
+    private String normalizeFilter(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+
+        return value.trim().replaceFirst("^#", "");
     }
 
     private PostResponse mapToResponse(Post post, Long currentUserId) {
@@ -308,12 +365,13 @@ public class PostService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        validateCaption(request.getCaption());
         validatePictureUrls(request.getPictureUrls());
 
         existing.setUser(user);
         existing.setLocation(request.getLocation());
         existing.setCaption(request.getCaption());
-        existing.setTitle(request.getTitle());
+        existing.setTitle(resolveTitle(request));
 
         if (request.getStatus() != null) {
             existing.setStatus(request.getStatus());

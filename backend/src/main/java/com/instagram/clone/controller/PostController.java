@@ -31,10 +31,23 @@ public class PostController {
     }
 
     @GetMapping
-    public List<PostResponse> getAll(@RequestParam(required = false) Long currentUserId) {
+    public List<PostResponse> getAll(
+            @RequestParam(required = false) Long currentUserId,
+            @RequestParam(required = false) String tag,
+            @RequestParam(required = false) String text,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false, defaultValue = "false") boolean onlyMine
+    ) {
+        Long authorFilterId = onlyMine ? currentUserId : userId;
+
+        if (hasValue(tag) || hasValue(text) || authorFilterId != null) {
+            return postService.search(tag, text, authorFilterId, currentUserId);
+        }
+
         if (currentUserId != null) {
             return postService.getAll(currentUserId);
         }
+
         return postService.getAll();
     }
 
@@ -47,5 +60,9 @@ public class PostController {
     public String delete(@PathVariable Long id, @RequestParam Long userId) {
         postService.delete(id, userId);
         return "Post deleted successfully";
+    }
+
+    private boolean hasValue(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }
