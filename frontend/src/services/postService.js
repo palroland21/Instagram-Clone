@@ -51,8 +51,16 @@ export function sortPostsNewestFirst(posts) {
     return [...posts].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
 }
 
-export function fetchPosts({ token, currentUserId } = {}) {
-    const query = currentUserId ? `?currentUserId=${currentUserId}` : ''
+export function fetchPosts({ token, currentUserId, tag, text, userId, onlyMine } = {}) {
+    const params = new URLSearchParams()
+
+    if (currentUserId) params.set('currentUserId', currentUserId)
+    if (tag) params.set('tag', tag)
+    if (text) params.set('text', text)
+    if (userId) params.set('userId', userId)
+    if (onlyMine) params.set('onlyMine', 'true')
+
+    const query = params.toString() ? `?${params.toString()}` : ''
 
     return apiRequest(`/posts${query}`, {
         token,
@@ -106,7 +114,6 @@ export function createPost({ token, userId, pictureUrls, caption, location, tags
             caption,
             location,
             tagNames: tags,
-            title: caption.trim().slice(0, 60) || 'Post',
         },
         errorMessage: 'Failed to create post',
     })

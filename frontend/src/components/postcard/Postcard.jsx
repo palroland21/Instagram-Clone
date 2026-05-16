@@ -94,6 +94,21 @@ function PostCard({ post: initialPost, currentUserId }) {
         const urls = editForm.pictureUrls.split('\n').map(s => s.trim()).filter(Boolean)
         const tags = editForm.tagNames.split(',').map(s => s.trim().replace(/^#/, '')).filter(Boolean)
 
+        if (!editForm.caption.trim()) {
+            alert('Write a caption before saving.')
+            return
+        }
+
+        if (tags.length === 0) {
+            alert('Add at least one tag before saving.')
+            return
+        }
+
+        if (urls.length === 0) {
+            alert('Add at least one picture before saving.')
+            return
+        }
+
         const payload = {
             userId: currentUserId,
             caption: editForm.caption,

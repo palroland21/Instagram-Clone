@@ -113,6 +113,17 @@ function CreatePostContent({ onClose, onPostCreated }) {
         if (files.length === 0) return
 
         setError('')
+
+        if (!caption.trim()) {
+            setError('Write a caption before posting.')
+            return
+        }
+
+        if (tags.length === 0) {
+            setError('Add at least one tag before posting.')
+            return
+        }
+
         setLoading(true)
 
         try {

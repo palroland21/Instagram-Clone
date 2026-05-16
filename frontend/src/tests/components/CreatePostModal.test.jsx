@@ -177,7 +177,6 @@ describe('CreatePostModal', () => {
                         caption: 'This is a test post.',
                         location: 'Cluj-Napoca',
                         tagNames: ['react'],
-                        title: 'This is a test post.',
                     }),
                 })
             );

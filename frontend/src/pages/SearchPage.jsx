@@ -43,6 +43,7 @@ function SearchPage() {
 
         return posts.filter(post => {
             const postTitle = (post.title || '').toLowerCase()
+            const postCaption = (post.caption || '').toLowerCase()
             const postUsername = (post.username || '').toLowerCase()
             const postTags = Array.isArray(post.tagNames)
                 ? post.tagNames.map(tag => String(tag).toLowerCase())
@@ -51,6 +52,7 @@ function SearchPage() {
             const matchesSearch =
                 !query ||
                 postTitle.includes(query) ||
+                postCaption.includes(query) ||
                 postUsername.includes(query) ||
                 postTags.some(tag => tag.includes(query))
 
