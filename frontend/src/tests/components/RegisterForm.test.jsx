@@ -114,6 +114,7 @@ describe('RegisterForm', () => {
                     token: 'fake-register-token',
                     userId: 10,
                     username: 'vasi',
+                    role: 'USER',
                     phoneNumber: '0712345678',
                 }),
         });
@@ -158,6 +159,7 @@ describe('RegisterForm', () => {
         expect(localStorage.getItem('token')).toBe('fake-register-token');
         expect(localStorage.getItem('userId')).toBe('10');
         expect(localStorage.getItem('username')).toBe('vasi');
+        expect(localStorage.getItem('role')).toBe('USER');
         expect(localStorage.getItem('phoneNumber')).toBe('0712345678');
 
         expect(setMessage).toHaveBeenCalledWith('Registration successful!');

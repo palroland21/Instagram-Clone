@@ -13,6 +13,18 @@ export function getCurrentUserId() {
     return userId ? Number(userId) : null
 }
 
+export function getCurrentUserRole() {
+    return localStorage.getItem('role') || ''
+}
+
+export function isAuthenticated() {
+    return Boolean(getToken() && getCurrentUserId())
+}
+
+export function isAdminUser() {
+    return isAuthenticated() && getCurrentUserRole() === 'ADMIN'
+}
+
 export function getAuthHeaders(token = getToken()) {
     return token ? { Authorization: `Bearer ${token}` } : {}
 }
@@ -21,6 +33,7 @@ export function saveAuthSession(data) {
     localStorage.setItem('token', data.token)
     localStorage.setItem('userId', data.userId)
     localStorage.setItem('username', data.username)
+    localStorage.setItem('role', data.role || 'USER')
 
     if (data.phoneNumber) {
         localStorage.setItem('phoneNumber', data.phoneNumber)
@@ -31,6 +44,7 @@ export function clearAuthSession() {
     localStorage.removeItem('token')
     localStorage.removeItem('userId')
     localStorage.removeItem('username')
+    localStorage.removeItem('role')
     localStorage.removeItem('phoneNumber')
 }
 

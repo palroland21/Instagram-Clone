@@ -72,6 +72,7 @@ describe('LoginForm', () => {
                 token: 'fake-token-123',
                 userId: 7,
                 username: 'vasi',
+                role: 'USER',
             }),
         });
 
@@ -105,6 +106,7 @@ describe('LoginForm', () => {
         expect(localStorage.getItem('token')).toBe('fake-token-123');
         expect(localStorage.getItem('userId')).toBe('7');
         expect(localStorage.getItem('username')).toBe('vasi');
+        expect(localStorage.getItem('role')).toBe('USER');
 
         expect(setMessage).toHaveBeenCalledWith('Login successful!');
         expect(setError).toHaveBeenCalledWith('');
