@@ -9,10 +9,12 @@ import CommentsSection from './postcard-components/CommentsSection.jsx'
 import AddComment from './postcard-components/AddComment.jsx'
 import {
     createComment,
+    deleteComment,
     deletePost,
     getToken,
     normalizeComment,
     toggleCommentVote,
+    updateComment,
     togglePostVote,
     updatePost,
 } from '../../services'
@@ -40,6 +42,9 @@ function PostCard({ post: initialPost, currentUserId }) {
     const [comments, setComments] = useState(post.comments || [])
     const [commentText, setCommentText] = useState('')
     const [showComments, setShowComments] = useState(false)
+    const [editingCommentId, setEditingCommentId] = useState(null)
+    const [editingCommentText, setEditingCommentText] = useState('')
+    const [openCommentMenuId, setOpenCommentMenuId] = useState(null)
 
     const [expanded, setExpanded] = useState(false)
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -215,6 +220,70 @@ function PostCard({ post: initialPost, currentUserId }) {
         }
     }
 
+    const startEditComment = (comment) => {
+        setEditingCommentId(comment.id)
+        setEditingCommentText(comment.text || '')
+        setOpenCommentMenuId(null)
+    }
+
+    const cancelEditComment = () => {
+        setEditingCommentId(null)
+        setEditingCommentText('')
+    }
+
+    const handleUpdateComment = async (comment) => {
+        const nextText = editingCommentText.trim()
+
+        if (!nextText) return
+
+        try {
+            const updatedComment = await updateComment({
+                token,
+                userId: currentUserId,
+                postId: post.id,
+                commentId: comment.id,
+                text: nextText,
+            })
+
+            const normalized = normalizeComment(updatedComment, new Map(), currentUserId)
+
+            setComments((prev) =>
+                prev.map((item) =>
+                    Number(item.id) === Number(comment.id)
+                        ? { ...item, ...normalized }
+                        : item
+                )
+            )
+
+            cancelEditComment()
+        } catch (error) {
+            console.error('Update comment error:', error)
+            alert('Failed to edit the comment. Please try again later.')
+        }
+    }
+
+    const handleDeleteComment = async (commentId) => {
+        setOpenCommentMenuId(null)
+        const confirmed = window.confirm('Delete the comment?')
+
+        if (!confirmed) return
+
+        try {
+            await deleteComment({
+                token,
+                userId: currentUserId,
+                commentId,
+            })
+
+            setComments((prev) =>
+                prev.filter((comment) => Number(comment.id) !== Number(commentId))
+            )
+        } catch (error) {
+            console.error('Delete comment error:', error)
+            alert('Failed to delete the comment. Please try again later.')
+        }
+    }
+
     return (
         <>
             <article style={{ borderBottom: '1px solid #262626', paddingBottom: 8, marginBottom: 8 }}>
@@ -241,7 +310,21 @@ function PostCard({ post: initialPost, currentUserId }) {
                     />
                     <PostStats voteCount={voteCount} likeCount={likeCount} dislikeCount={dislikeCount} />
                     <PostCaption post={post} expanded={expanded} setExpanded={setExpanded} />
-                    <CommentsSection showComments={showComments} sortedComments={sortedComments} handleCommentVote={handleCommentVote} />
+                    <CommentsSection
+                        showComments={showComments}
+                        sortedComments={sortedComments}
+                        currentUserId={currentUserId}
+                        editingCommentId={editingCommentId}
+                        editingCommentText={editingCommentText}
+                        openCommentMenuId={openCommentMenuId}
+                        setEditingCommentText={setEditingCommentText}
+                        setOpenCommentMenuId={setOpenCommentMenuId}
+                        handleCommentVote={handleCommentVote}
+                        onStartEditComment={startEditComment}
+                        onCancelEditComment={cancelEditComment}
+                        onUpdateComment={handleUpdateComment}
+                        onDeleteComment={handleDeleteComment}
+                    />
                     <AddComment commentText={commentText} setCommentText={setCommentText} handlePostComment={handlePostComment} />
                 </div>
             </article>

@@ -65,6 +65,29 @@ export function createComment({ token, userId, postId, text }) {
     })
 }
 
+export function updateComment({ token, userId, postId, commentId, text, pictureUrl }) {
+    const body = { userId, postId, text }
+
+    if (pictureUrl !== undefined) {
+        body.pictureUrl = pictureUrl
+    }
+
+    return apiJsonRequest(`/comments/${commentId}`, {
+        method: 'PUT',
+        token,
+        body,
+        errorMessage: 'Failed to update comment',
+    })
+}
+
+export function deleteComment({ token, userId, commentId }) {
+    return apiRequest(`/comments/${commentId}?userId=${userId}`, {
+        method: 'DELETE',
+        token,
+        errorMessage: 'Failed to delete comment',
+    })
+}
+
 export function toggleCommentVote({ token, userId, commentId, voteType }) {
     return apiRequest(
         `/comment-votes/toggle?userId=${userId}&commentId=${commentId}&voteType=${voteType}`,
