@@ -6,6 +6,7 @@ import com.instagram.clone.model.Comment;
 import com.instagram.clone.model.CommentVote;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.User;
+import com.instagram.clone.model.enums.PostStatus;
 import com.instagram.clone.model.enums.VoteType;
 import com.instagram.clone.repository.CommentRepository;
 import com.instagram.clone.repository.PostRepository;
@@ -38,6 +39,10 @@ public class CommentService {
         Post post = postRepository.findById(request.getPostId())
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
+        if (post.getStatus() == PostStatus.OUTDATED) {
+            throw new RuntimeException("Comments are closed for this post.");
+        }
+
         validateText(request.getText());
 
         Comment comment = new Comment();
@@ -48,6 +53,12 @@ public class CommentService {
         comment.setPostedAt(request.getPostedAt() != null ? request.getPostedAt() : LocalDateTime.now());
 
         Comment saved = commentRepository.save(comment);
+
+        if (post.getStatus() == PostStatus.JUST_POSTED) {
+            post.setStatus(PostStatus.FIRST_REACTIONS);
+            postRepository.save(post);
+        }
+
         return mapToResponse(saved, request.getUserId());
     }
 

@@ -30,6 +30,10 @@ public class PostVoteService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
+        if (post.getUser().getId().equals(userId)) {
+            throw new RuntimeException("You cannot vote on your own post.");
+        }
+
         Optional<PostVote> existingVote = postVoteRepository.findByUserIdAndPostId(userId, postId);
 
         if (existingVote.isPresent()) {

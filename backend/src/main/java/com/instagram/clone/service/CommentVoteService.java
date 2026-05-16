@@ -38,6 +38,8 @@ public class CommentVoteService {
         Comment comment = commentRepository.findById(request.getCommentId())
                 .orElseThrow(() -> new RuntimeException("Comment not found"));
 
+        validateNotOwnComment(user, comment);
+
         CommentVote commentVote = new CommentVote();
         commentVote.setUser(user);
         commentVote.setComment(comment);
@@ -53,6 +55,8 @@ public class CommentVoteService {
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Comment not found"));
+
+        validateNotOwnComment(user, comment);
 
         Optional<CommentVote> existingVote = commentVoteRepository.findByUserAndComment(user, comment);
 
@@ -102,6 +106,8 @@ public class CommentVoteService {
         Comment comment = commentRepository.findById(request.getCommentId())
                 .orElseThrow(() -> new RuntimeException("Comment not found"));
 
+        validateNotOwnComment(user, comment);
+
         existing.setUser(user);
         existing.setComment(comment);
         existing.setVoteType(request.getVoteType());
@@ -142,6 +148,12 @@ public class CommentVoteService {
         response.setVoteCount(likeCount - dislikeCount);
 
         return response;
+    }
+
+    private void validateNotOwnComment(User user, Comment comment) {
+        if (comment.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("You cannot vote on your own comment.");
+        }
     }
 
     private CommentVoteResponse mapToResponse(CommentVote commentVote) {

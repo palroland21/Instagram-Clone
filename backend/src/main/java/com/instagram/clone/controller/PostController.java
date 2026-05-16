@@ -56,6 +56,16 @@ public class PostController {
         return postService.update(id, request);
     }
 
+    @PatchMapping("/{id}/close-comments")
+    public PostResponse closeComments(@PathVariable Long id, @RequestParam Long userId) {
+        return postService.closeComments(id, userId);
+    }
+
+    @PostMapping("/{id}/close-comments")
+    public PostResponse closeCommentsWithPost(@PathVariable Long id, @RequestParam Long userId) {
+        return postService.closeComments(id, userId);
+    }
+
     @DeleteMapping("/{id}")
     public String delete(@PathVariable Long id, @RequestParam Long userId) {
         postService.delete(id, userId);

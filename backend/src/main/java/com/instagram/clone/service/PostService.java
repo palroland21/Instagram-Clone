@@ -244,12 +244,14 @@ public class PostService {
         response.setId(post.getId());
         response.setUserId(post.getUser().getId());
         response.setUsername(post.getUser().getUsername());
+        response.setUserProfilePicture(post.getUser().getProfilePicture());
         response.setPictureUrls(extractPictureUrls(post.getPictures()));
         response.setLocation(post.getLocation());
         response.setCaption(post.getCaption());
         response.setTitle(post.getTitle());
         response.setCreatedAt(post.getCreatedAt());
-        response.setStatus(post.getStatus());
+        List<Comment> comments = commentRepository.findByPostId(post.getId());
+        response.setStatus(resolveDisplayStatus(post, comments));
 
         List<Long> tagIds = new ArrayList<>();
         List<String> tagNames = new ArrayList<>();
@@ -264,7 +266,6 @@ public class PostService {
         response.setTagIds(tagIds);
         response.setTagNames(tagNames);
 
-        List<Comment> comments = commentRepository.findByPostId(post.getId());
         List<CommentResponse> commentResponses = new ArrayList<>();
         for (Comment comment : comments) {
             CommentResponse cr = new CommentResponse();
@@ -308,6 +309,7 @@ public class PostService {
 
             commentResponses.add(cr);
         }
+        sortCommentsByVotesDesc(commentResponses);
         response.setComments(commentResponses);
 
         long likeCount = 0;
@@ -340,6 +342,52 @@ public class PostService {
         response.setDislikedByCurrentUser(dislikedByCurrentUser);
 
         return response;
+    }
+
+    public PostResponse closeComments(Long id, Long currentUserId) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post not found with id: " + id));
+
+        if (!post.getUser().getId().equals(currentUserId)) {
+            throw new RuntimeException("Unauthorized: You can only close comments on your own posts.");
+        }
+
+        post.setStatus(PostStatus.OUTDATED);
+        Post updated = postRepository.save(post);
+        return mapToResponse(updated, currentUserId);
+    }
+
+    private void sortCommentsByVotesDesc(List<CommentResponse> comments) {
+        comments.sort((a, b) -> {
+            int byVotes = Integer.compare(b.getVoteCount(), a.getVoteCount());
+            if (byVotes != 0) {
+                return byVotes;
+            }
+
+            if (a.getPostedAt() == null && b.getPostedAt() == null) {
+                return 0;
+            }
+            if (a.getPostedAt() == null) {
+                return 1;
+            }
+            if (b.getPostedAt() == null) {
+                return -1;
+            }
+
+            return a.getPostedAt().compareTo(b.getPostedAt());
+        });
+    }
+
+    private PostStatus resolveDisplayStatus(Post post, List<Comment> comments) {
+        if (post.getStatus() == PostStatus.OUTDATED) {
+            return PostStatus.OUTDATED;
+        }
+
+        if (comments != null && !comments.isEmpty()) {
+            return PostStatus.FIRST_REACTIONS;
+        }
+
+        return PostStatus.JUST_POSTED;
     }
 
     private List<String> extractPictureUrls(List<Picture> pictures) {
