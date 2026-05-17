@@ -52,7 +52,7 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
             return
         }
 
-        setIsSubmitting(true)
+        setIsSubmitting(true)  // intre timp ce se trimite formarul sa dezactiv butonu de submit
 
         try {
             const data = await registerWithProfilePicture(registerData, profilePictureFile)

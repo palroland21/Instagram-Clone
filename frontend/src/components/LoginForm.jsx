@@ -10,22 +10,23 @@ function LoginForm({ setMessage, setError, goToRegister }) {
         password: '',
     })
 
+    // se executa de fiecare data cand utilizatorul scrie intr un input
     const handleChange = (e) => {
         const { name, value } = e.target
         setLoginData((prev) => ({
-            ...prev,
+            ...prev,  // copiaza toate valorile vechi din obiectul anterior (practic daca rebag parola, username sa ramana salvata in input box)
             [name]: value,
         }))
     }
 
     const handleSubmit = async (e) => {
-        e.preventDefault()
+        e.preventDefault()  // cand dam submit se reincarca pagina, dar noi aici nu vrem asta
         setMessage('')
         setError('')
 
         try {
-            const data = await login(loginData)
-            persistAuthSession(data)
+            const data = await login(loginData)  // trb sync sa pot folosi await (await = astept rs din backend)
+            persistAuthSession(data)  // salvam datele din backend in localStorage
 
             setMessage('Login successful!')
 

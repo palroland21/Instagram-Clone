@@ -58,7 +58,7 @@ public class UserService {
             phoneNumber = phoneNumber.trim();
 
             if (!isValidPhoneNumber(phoneNumber)) {
-                throw new RuntimeException("Phone number is invalid! Use only digits, between 10 and 15 digits.");
+                throw new RuntimeException("Phone number is invalid! Use international format, for example +40712345678.");
             }
 
             existing.setPhoneNumber(phoneNumber);
@@ -68,7 +68,7 @@ public class UserService {
     }
 
     private boolean isValidPhoneNumber(String phoneNumber) {
-        return phoneNumber != null && phoneNumber.matches("^\\d{10,15}$");
+        return phoneNumber != null && phoneNumber.matches("^\\+[1-9]\\d{7,14}$");
     }
 
     public void delete(Long id) {
