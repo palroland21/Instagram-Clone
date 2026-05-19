@@ -59,6 +59,7 @@ public class AuthController {
                 "token", token,
                 "userId", saved.getId(),
                 "username", saved.getUsername(),
+                "role", getRoleName(saved),
                 "phoneNumber", saved.getPhoneNumber()
         ));
     }
@@ -85,7 +86,8 @@ public class AuthController {
             return ResponseEntity.ok(Map.of(
                     "token", token,
                     "userId", user.getId(),
-                    "username", user.getUsername()
+                    "username", user.getUsername(),
+                    "role", getRoleName(user)
             ));
         } catch (RuntimeException e) {
             return ResponseEntity.status(401).body("Invalid username or password!");
@@ -98,5 +100,9 @@ public class AuthController {
         }
 
         return phoneNumber.matches("\\d{10,15}");
+    }
+
+    private String getRoleName(User user) {
+        return user.getRole() != null ? user.getRole().name() : "USER";
     }
 }

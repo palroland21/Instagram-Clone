@@ -1,54 +1,63 @@
 package com.instagram.clone.service;
 
-import com.twilio.Twilio;
-import com.twilio.rest.api.v2010.account.Message;
-import com.twilio.type.PhoneNumber;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 @Service
 public class SmsService {
 
-    private static final Pattern E164_PHONE_PATTERN = Pattern.compile("^\\+[1-9]\\d{7,14}$");
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+[1-9]\\d{7,14}$");
 
-    @Value("${twilio.account-sid}")
-    private String accountSid;
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${twilio.auth-token}")
-    private String authToken;
+    @Value("${textbee.api-key}")
+    private String apiKey;
 
-    @Value("${twilio.from-number}")
-    private String fromNumber;
-
-    private boolean twilioInitialized = false;
+    @Value("${textbee.device-id}")
+    private String deviceId;
 
     public void sendBanSms(String toPhoneNumber, String username) {
-        validateTwilioConfig();
-
-        String normalizedToNumber = normalizePhoneNumber(toPhoneNumber);
-        String normalizedFromNumber = normalizePhoneNumber(fromNumber);
-
-        initTwilioIfNeeded();
-
-        Message.creator(
-                new PhoneNumber(normalizedToNumber),
-                new PhoneNumber(normalizedFromNumber),
-                "Hello " + username + ", your Instagram Clone account has been banned by a moderator."
-        ).create();
-    }
-
-    private synchronized void initTwilioIfNeeded() {
-        if (!twilioInitialized) {
-            Twilio.init(accountSid, authToken);
-            twilioInitialized = true;
+        if (isMissing(apiKey) || isMissing(deviceId)) {
+            throw new RuntimeException("TextBee config is missing. Set TEXTBEE_API_KEY and TEXTBEE_DEVICE_ID.");
         }
-    }
 
-    private void validateTwilioConfig() {
-        if (isMissingConfig(accountSid) || isMissingConfig(authToken) || isMissingConfig(fromNumber)) {
-            throw new RuntimeException("Twilio config is missing. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER.");
+        String normalizedPhoneNumber = normalizePhoneNumber(toPhoneNumber);
+        String message = "Hello " + username + ", your Instagram Clone account has been banned by a moderator.";
+
+        try {
+            String requestBody = objectMapper.writeValueAsString(Map.of(
+                    "recipients", List.of(normalizedPhoneNumber),
+                    "message", message
+            ));
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.textbee.dev/api/v1/gateway/devices/" + deviceId + "/send-sms"))
+                    .header("Content-Type", "application/json")
+                    .header("x-api-key", apiKey)
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new RuntimeException("TextBee failed to send SMS: " + response.body());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Could not call TextBee API.", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("TextBee SMS request was interrupted.", e);
         }
     }
 
@@ -66,24 +75,20 @@ public class SmsService {
 
         if (normalized.startsWith("00")) {
             normalized = "+" + normalized.substring(2);
-        } else if (normalized.startsWith("+")) {
-            // already international
         } else if (normalized.startsWith("0")) {
             normalized = "+40" + normalized.substring(1);
         } else if (normalized.startsWith("40")) {
             normalized = "+" + normalized;
-        } else if (normalized.matches("\\d{8,15}")) {
-            normalized = "+" + normalized;
         }
 
-        if (!E164_PHONE_PATTERN.matcher(normalized).matches()) {
-            throw new RuntimeException("Phone number is invalid. Use international format, for example +40712345678.");
+        if (!PHONE_PATTERN.matcher(normalized).matches()) {
+            throw new RuntimeException("Phone number is invalid. Use format +40712345678.");
         }
 
         return normalized;
     }
 
-    private boolean isMissingConfig(String value) {
+    private boolean isMissing(String value) {
         return value == null || value.isBlank() || value.startsWith("${");
     }
 }

@@ -22,7 +22,8 @@ public class InternalNotificationService {
             System.out.println("Ban email sent to " + user.getEmail());
         } catch (Exception e) {
             System.out.println("Failed to send ban email to " + user.getEmail());
-            System.out.println(e.getMessage());
+            System.out.println(e.getClass().getSimpleName() + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
