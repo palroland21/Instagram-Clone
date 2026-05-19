@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 public class InternalNotificationService {
 
     private final EmailService emailService;
+    private final SmsService smsService;
 
     public void sendBanNotifications(User user) {
         sendBanEmail(user);
@@ -21,11 +22,18 @@ public class InternalNotificationService {
             System.out.println("Ban email sent to " + user.getEmail());
         } catch (Exception e) {
             System.out.println("Failed to send ban email to " + user.getEmail());
-            System.out.println(e.getMessage());
+            System.out.println(e.getClass().getSimpleName() + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     private void sendBanSms(User user) {
-        System.out.println("SMS SENT TO USER " + user.getUsername() + ": Your account has been banned.");
+        try {
+            smsService.sendBanSms(user.getPhoneNumber(), user.getUsername());
+            System.out.println("Ban SMS sent to " + user.getPhoneNumber());
+        } catch (Exception e) {
+            System.out.println("Failed to send ban SMS to " + user.getPhoneNumber());
+            System.out.println(e.getMessage());
+        }
     }
 }

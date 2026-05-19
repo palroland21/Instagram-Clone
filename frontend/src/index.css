@@ -151,3 +151,34 @@ body {
     margin-bottom: 16px;
     text-align: center;
 }
+
+.unauthorized-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: #0b0b0b;
+}
+
+.unauthorized-card {
+    width: 100%;
+    max-width: 440px;
+    padding: 32px;
+    border: 1px solid #3b1d1d;
+    border-radius: 8px;
+    background: #170808;
+    color: #f8d7da;
+    text-align: center;
+}
+
+.unauthorized-card h1 {
+    margin: 0 0 12px;
+    font-size: 28px;
+    color: #ff6b6b;
+}
+
+.unauthorized-card p {
+    margin: 0;
+    color: #ffd7d7;
+}

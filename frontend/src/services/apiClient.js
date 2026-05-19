@@ -14,15 +14,7 @@ export function getCurrentUserId() {
 }
 
 export function getCurrentUserRole() {
-    return localStorage.getItem('role') || ''
-}
-
-export function isAuthenticated() {
-    return Boolean(getToken() && getCurrentUserId())
-}
-
-export function isAdminUser() {
-    return isAuthenticated() && getCurrentUserRole() === 'ADMIN'
+    return localStorage.getItem('role')
 }
 
 export function getAuthHeaders(token = getToken()) {
