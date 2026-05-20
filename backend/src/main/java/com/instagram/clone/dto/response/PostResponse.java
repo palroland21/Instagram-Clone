@@ -33,4 +33,6 @@ public class PostResponse {
 
     private boolean likedByCurrentUser;
     private boolean dislikedByCurrentUser;
+
+    private Double authorScore;
 }

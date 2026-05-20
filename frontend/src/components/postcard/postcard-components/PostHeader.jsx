@@ -58,6 +58,10 @@ function PostHeader({
                             {post.username}
                         </span>
 
+                        <span style={{ fontSize: 12, color: '#ffd700', fontWeight: 'bold' }}>
+                            ({post.authorScore !== undefined ? post.authorScore : 0} pts)
+                        </span>
+
                         <span style={{ color: '#737373', fontSize: 14 }}>•</span>
                         <span style={{ fontSize: 14, color: '#737373' }}>
                             {post.createdAt ? timeAgo(post.createdAt) : ''}

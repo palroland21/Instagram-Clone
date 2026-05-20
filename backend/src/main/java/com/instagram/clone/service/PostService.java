@@ -250,6 +250,7 @@ public class PostService {
         response.setCaption(post.getCaption());
         response.setTitle(post.getTitle());
         response.setCreatedAt(post.getCreatedAt());
+        response.setAuthorScore(post.getUser().getScore());
         List<Comment> comments = commentRepository.findByPostId(post.getId());
         response.setStatus(resolveDisplayStatus(post, comments));
 
@@ -297,6 +298,7 @@ public class PostService {
             cr.setUserId(comment.getUser().getId());
             cr.setUsername(comment.getUser().getUsername());
             cr.setUserProfilePicture(comment.getUser().getProfilePicture());
+            cr.setAuthorScore(comment.getUser().getScore());
             cr.setPostId(post.getId());
             cr.setText(comment.getText());
             cr.setPictureUrl(comment.getPictureUrl());

@@ -21,4 +21,6 @@ public class CommentResponse {
 
     private boolean likedByCurrentUser;
     private boolean dislikedByCurrentUser;
+
+    private Double authorScore;
 }

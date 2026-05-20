@@ -74,6 +74,10 @@ function CommentsSection({
                                             {comment.username || 'user'}
                                         </span>
 
+                                        <span style={{ fontSize: 12, color: '#ffd700', fontWeight: 'bold', marginRight: 6 }}>
+                                            ({comment.authorScore !== undefined ? comment.authorScore : 0} pts)
+                                        </span>
+
                                         {isEditing ? (
                                             <input
                                                 value={editingCommentText}

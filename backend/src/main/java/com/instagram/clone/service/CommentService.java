@@ -189,6 +189,7 @@ public class CommentService {
         response.setText(comment.getText());
         response.setPictureUrl(comment.getPictureUrl());
         response.setPostedAt(comment.getPostedAt());
+        response.setAuthorScore(comment.getUser().getScore());
 
         response.setLikeCount(likeCount);
         response.setDislikeCount(dislikeCount);

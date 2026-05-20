@@ -172,6 +172,17 @@ function PostCard({ post: initialPost, currentUserId }) {
             return
         }
 
+        let scoreDiff = 0;
+        if (voteType === 'LIKE') {
+            if (liked) scoreDiff = -2.5;
+            else if (disliked) scoreDiff = 4.0;
+            else scoreDiff = 2.5;
+        } else if (voteType === 'DISLIKE') {
+            if (disliked) scoreDiff = 1.5;
+            else if (liked) scoreDiff = -4.0;
+            else scoreDiff = -1.5;
+        }
+
         try {
             const data = await togglePostVote({
                 token,
@@ -185,6 +196,12 @@ function PostCard({ post: initialPost, currentUserId }) {
             setLikeCount(Number(data.likeCount) || 0)
             setDislikeCount(Number(data.dislikeCount) || 0)
             setVoteCount(Number(data.voteCount) || 0)
+
+            setPost(prev => ({
+                ...prev,
+                authorScore: (prev.authorScore || 0) + scoreDiff
+            }))
+
         } catch (error) {
             console.error('Post vote error:', error)
         }
@@ -202,6 +219,17 @@ function PostCard({ post: initialPost, currentUserId }) {
             return
         }
 
+        let scoreDiff = 0;
+        if (voteType === 'LIKE') {
+            if (comment.likedByCurrentUser) scoreDiff = -5.0;
+            else if (comment.dislikedByCurrentUser) scoreDiff = 7.5;
+            else scoreDiff = 5.0;
+        } else if (voteType === 'DISLIKE') {
+            if (comment.dislikedByCurrentUser) scoreDiff = 2.5;
+            else if (comment.likedByCurrentUser) scoreDiff = -7.5;
+            else scoreDiff = -2.5;
+        }
+
         try {
             const data = await toggleCommentVote({
                 token,
@@ -211,17 +239,18 @@ function PostCard({ post: initialPost, currentUserId }) {
             })
 
             setComments((prev) =>
-                prev.map((comment) =>
-                    Number(comment.id) === Number(commentId)
+                prev.map((c) =>
+                    Number(c.id) === Number(commentId)
                         ? {
-                            ...comment,
+                            ...c,
                             likedByCurrentUser: Boolean(data.liked),
                             dislikedByCurrentUser: Boolean(data.disliked),
                             likeCount: Number(data.likeCount) || 0,
                             dislikeCount: Number(data.dislikeCount) || 0,
                             voteCount: Number(data.voteCount) || 0,
+                            authorScore: (c.authorScore || 0) + scoreDiff,
                         }
-                        : comment
+                        : c
                 )
             )
         } catch (error) {

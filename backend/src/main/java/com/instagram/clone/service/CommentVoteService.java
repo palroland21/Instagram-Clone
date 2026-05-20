@@ -58,18 +58,39 @@ public class CommentVoteService {
 
         validateNotOwnComment(user, comment);
 
+        User author = comment.getUser();
         Optional<CommentVote> existingVote = commentVoteRepository.findByUserAndComment(user, comment);
 
         if (existingVote.isPresent()) {
             CommentVote vote = existingVote.get();
 
             if (vote.getVoteType() == voteType) {
+                if (voteType == VoteType.LIKE) {
+                    author.setScore(author.getScore() - 5.0);
+                } else {
+                    author.setScore(author.getScore() + 2.5);
+                    user.setScore(user.getScore() + 1.5);
+                }
                 commentVoteRepository.delete(vote);
             } else {
+                if (vote.getVoteType() == VoteType.LIKE) {
+                    author.setScore(author.getScore() - 5.0 - 2.5);
+                    user.setScore(user.getScore() - 1.5);
+                } else {
+                    author.setScore(author.getScore() + 2.5 + 5.0);
+                    user.setScore(user.getScore() + 1.5);
+                }
                 vote.setVoteType(voteType);
                 commentVoteRepository.save(vote);
             }
         } else {
+            if (voteType == VoteType.LIKE) {
+                author.setScore(author.getScore() + 5.0);
+            } else {
+                author.setScore(author.getScore() - 2.5);
+                user.setScore(user.getScore() - 1.5);
+            }
+
             CommentVote newVote = new CommentVote();
             newVote.setUser(user);
             newVote.setComment(comment);
@@ -77,6 +98,8 @@ public class CommentVoteService {
             commentVoteRepository.save(newVote);
         }
 
+        userRepository.save(author);
+        userRepository.save(user);
         return buildToggleResponse(user, comment);
     }
 

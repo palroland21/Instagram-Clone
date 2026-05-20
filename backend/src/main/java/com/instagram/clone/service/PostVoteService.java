@@ -34,18 +34,29 @@ public class PostVoteService {
             throw new RuntimeException("You cannot vote on your own post.");
         }
 
+        User author = post.getUser();
         Optional<PostVote> existingVote = postVoteRepository.findByUserIdAndPostId(userId, postId);
 
         if (existingVote.isPresent()) {
             PostVote vote = existingVote.get();
 
             if (vote.getVoteType() == voteType) {
+                if (voteType == VoteType.LIKE) author.setScore(author.getScore() - 2.5);
+                else author.setScore(author.getScore() + 1.5);
                 postVoteRepository.delete(vote);
             } else {
+                if (vote.getVoteType() == VoteType.LIKE) {
+                    author.setScore(author.getScore() - 2.5 - 1.5);
+                } else {
+                    author.setScore(author.getScore() + 1.5 + 2.5);
+                }
                 vote.setVoteType(voteType);
                 postVoteRepository.save(vote);
             }
         } else {
+            if (voteType == VoteType.LIKE) author.setScore(author.getScore() + 2.5);
+            else author.setScore(author.getScore() - 1.5);
+
             PostVote newVote = new PostVote();
             newVote.setUser(user);
             newVote.setPost(post);
@@ -53,6 +64,7 @@ public class PostVoteService {
             postVoteRepository.save(newVote);
         }
 
+        userRepository.save(author);
         return buildToggleResponse(userId, postId);
     }
 
