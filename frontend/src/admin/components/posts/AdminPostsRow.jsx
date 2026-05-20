@@ -42,7 +42,7 @@ function AdminPostRow({ post, onPostUpdated }) {
     const status = post.status || "-";
 
     return (
-        <tr>
+        <tr data-cy="admin-post-row">
             <td>
                 <div className="admin-post-title">{title}</div>
                 <div className="admin-post-id">ID: {postId}</div>

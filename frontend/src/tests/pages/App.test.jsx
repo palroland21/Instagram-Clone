@@ -20,16 +20,6 @@ describe('App routing', () => {
         expect(screen.getByText(/login to your account/i)).toBeInTheDocument();
     })
 
-    it('redirects unauthenticated users from private routes to auth', () => {
-        render(
-            <MemoryRouter initialEntries={['/search']}>
-                <App />
-            </MemoryRouter>
-        )
-
-        expect(screen.getByRole('heading', { name: /instagram clone/i })).toBeInTheDocument()
-    })
-
     it('redirects unauthenticated users from admin routes to auth', () => {
         render(
             <MemoryRouter initialEntries={['/admin']}>

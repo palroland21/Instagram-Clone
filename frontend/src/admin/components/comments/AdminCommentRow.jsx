@@ -51,7 +51,7 @@ function AdminCommentRow({ comment, onCommentUpdated }) {
   const voteCount = comment.voteCount ?? comment.score ?? comment.votes ?? 0;
 
   return (
-    <tr>
+    <tr data-cy="admin-comment-row">
       <td>
         <div className="admin-comment-text">{text}</div>
         <div className="admin-comment-id">ID: {commentId}</div>

@@ -68,6 +68,7 @@ function ProfileInfo({
 
             {isOwner ? (
                 <button
+                    data-cy="edit-profile-button"
                     onClick={onEditProfile}
                     style={{
                         width: '100%',

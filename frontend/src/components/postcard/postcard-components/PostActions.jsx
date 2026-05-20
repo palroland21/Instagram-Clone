@@ -21,6 +21,7 @@ function PostActions({
         >
             <div style={{ display: 'flex', gap: 16 }}>
                 <button
+                    data-cy="like-button"
                     onClick={() => handlePostVote('LIKE')}
                     disabled={votingDisabled}
                     style={{
@@ -37,6 +38,7 @@ function PostActions({
                 </button>
 
                 <button
+                    data-cy="dislike-button"
                     onClick={() => handlePostVote('DISLIKE')}
                     disabled={votingDisabled}
                     style={{
@@ -54,6 +56,7 @@ function PostActions({
                 </button>
 
                 <button
+                    data-cy="comment-button"
                     onClick={() => setShowComments((prev) => !prev)}
                     style={{
                         background: 'none',

@@ -9,6 +9,7 @@ function AddComment({ commentText, setCommentText, handlePostComment, disabled =
             }}
         >
             <input
+                data-cy="comment-input"
                 placeholder={disabled ? 'Comments are closed.' : 'Add a comment...'}
                 value={commentText}
                 disabled={disabled}
@@ -31,6 +32,7 @@ function AddComment({ commentText, setCommentText, handlePostComment, disabled =
             />
 
             <button
+                data-cy="comment-submit"
                 onClick={handlePostComment}
                 disabled={disabled}
                 style={{

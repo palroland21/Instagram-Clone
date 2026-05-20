@@ -31,6 +31,7 @@ function MobileSidebar({
                 {items.map(item => (
                     <button
                         key={item.id}
+                        data-cy={`nav-${item.id}`}
                         onClick={() => onItemClick(item)}
                         style={{
                             position: 'relative',

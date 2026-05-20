@@ -89,6 +89,7 @@ function EditProfileModal({
 
                 <button
                     type="button"
+                    data-cy="change-profile-picture"
                     onClick={onChangeProfilePicture}
                     style={{
                         width: '100%',
@@ -150,6 +151,7 @@ function EditProfileModal({
 
                         {multiline ? (
                             <textarea
+                                data-cy={`edit-profile-${key}`}
                                 value={editForm[key]}
                                 onChange={e =>
                                     setEditForm(prev => ({
@@ -173,6 +175,7 @@ function EditProfileModal({
                             />
                         ) : (
                             <input
+                                data-cy={`edit-profile-${key}`}
                                 value={editForm[key]}
                                 onChange={e =>
                                     setEditForm(prev => ({
@@ -197,6 +200,7 @@ function EditProfileModal({
                 ))}
 
                 <button
+                    data-cy="edit-profile-save"
                     onClick={onSave}
                     disabled={isSaving}
                     style={{

@@ -46,6 +46,7 @@ function LoginForm({ setMessage, setError, goToRegister }) {
             <input
                 type="text"
                 name="username"
+                data-cy="login-username"
                 placeholder="Username"
                 value={loginData.username}
                 onChange={handleChange}
@@ -55,13 +56,14 @@ function LoginForm({ setMessage, setError, goToRegister }) {
             <input
                 type="password"
                 name="password"
+                data-cy="login-password"
                 placeholder="Password"
                 value={loginData.password}
                 onChange={handleChange}
                 required
             />
 
-            <button type="submit" className="submit-btn">
+            <button type="submit" className="submit-btn" data-cy="login-submit">
                 Login
             </button>
 

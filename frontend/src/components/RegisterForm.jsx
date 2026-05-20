@@ -85,6 +85,7 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
             <input
                 type="text"
                 name="username"
+                data-cy="register-username"
                 placeholder="Username"
                 value={registerData.username}
                 onChange={handleChange}
@@ -94,6 +95,7 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
             <input
                 type="email"
                 name="email"
+                data-cy="register-email"
                 placeholder="Email"
                 value={registerData.email}
                 onChange={handleChange}
@@ -103,6 +105,7 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
             <input
                 type="password"
                 name="password"
+                data-cy="register-password"
                 placeholder="Password"
                 value={registerData.password}
                 onChange={handleChange}
@@ -112,6 +115,7 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
             <input
                 type="password"
                 name="confirmPassword"
+                data-cy="register-confirm-password"
                 placeholder="Confirm password"
                 value={registerData.confirmPassword}
                 onChange={handleChange}
@@ -121,6 +125,7 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
             <input
                 type="text"
                 name="fullName"
+                data-cy="register-full-name"
                 placeholder="Full name"
                 value={registerData.fullName}
                 onChange={handleChange}
@@ -130,6 +135,7 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
             <input
                 type="tel"
                 name="phoneNumber"
+                data-cy="register-phone"
                 placeholder="Phone number, example: 0744611228"
                 value={registerData.phoneNumber}
                 onChange={handleChange}
@@ -141,6 +147,7 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
 
             <textarea
                 name="bio"
+                data-cy="register-bio"
                 placeholder="Bio"
                 value={registerData.bio}
                 onChange={handleChange}
@@ -149,11 +156,12 @@ function RegisterForm({ setMessage, setError, goToLogin }) {
 
             <input
                 type="file"
+                data-cy="register-profile-picture"
                 accept="image/*"
                 onChange={handleFileChange}
             />
 
-            <button type="submit" className="submit-btn" disabled={isSubmitting}>
+            <button type="submit" className="submit-btn" disabled={isSubmitting} data-cy="register-submit">
                 {isSubmitting ? 'Registering...' : 'Register'}
             </button>
 

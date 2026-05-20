@@ -355,7 +355,10 @@ function PostCard({ post: initialPost, currentUserId }) {
 
     return (
         <>
-            <article style={{ borderBottom: '1px solid #262626', paddingBottom: 8, marginBottom: 8 }}>
+            <article
+                data-cy="post-card"
+                style={{ borderBottom: '1px solid #262626', paddingBottom: 8, marginBottom: 8 }}
+            >
                 <PostHeader
                     post={post}
                     isOwner={isOwner}

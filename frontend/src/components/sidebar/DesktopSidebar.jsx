@@ -61,6 +61,7 @@ function DesktopSidebar({
                         return (
                             <button
                                 key={item.id}
+                                data-cy={`nav-${item.id}`}
                                 onClick={() => onItemClick(item)}
                                 style={{
                                     display: 'flex',
@@ -108,6 +109,7 @@ function DesktopSidebar({
                 </nav>
 
                 <button
+                    data-cy="nav-logout"
                     onClick={onLogout}
                     style={{
                         display: 'flex',

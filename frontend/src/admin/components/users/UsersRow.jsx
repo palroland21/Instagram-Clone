@@ -11,7 +11,7 @@ function UserRow({ user, onUserUpdated }) {
     const banned = Boolean(user.banned ?? user.isBanned);
 
     return (
-        <tr>
+        <tr data-cy="admin-user-row">
             <td>
                 <div className="admin-user-cell">
                     <div className="admin-avatar-placeholder">
