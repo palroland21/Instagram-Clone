@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class CommentService {
@@ -76,6 +77,35 @@ public class CommentService {
         }
 
         sortByVotesDesc(responses);
+        return responses;
+    }
+
+    public List<CommentResponse> getPage(Long currentUserId, int page, int size, boolean excludeTestData) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 20);
+        int firstVisibleIndex = safePage * safeSize;
+
+        List<CommentResponse> responses = new ArrayList<>();
+        int visibleIndex = 0;
+
+        for (Comment comment : commentRepository.findAllByOrderByPostedAtDesc()) {
+            if (excludeTestData && isCypressTestComment(comment)) {
+                continue;
+            }
+
+            if (visibleIndex < firstVisibleIndex) {
+                visibleIndex++;
+                continue;
+            }
+
+            responses.add(mapToResponse(comment, currentUserId));
+            visibleIndex++;
+
+            if (responses.size() >= safeSize) {
+                break;
+            }
+        }
+
         return responses;
     }
 
@@ -153,6 +183,27 @@ public class CommentService {
 
             return a.getPostedAt().compareTo(b.getPostedAt());
         });
+    }
+
+    private boolean isCypressTestComment(Comment comment) {
+        return hasTestDataMarker(comment.getText())
+                || hasTestDataMarker(comment.getUser().getUsername())
+                || hasTestDataMarker(comment.getUser().getFullName())
+                || hasTestDataMarker(comment.getUser().getEmail())
+                || hasTestDataMarker(comment.getPost().getTitle())
+                || hasTestDataMarker(comment.getPost().getCaption())
+                || hasTestDataMarker(comment.getPost().getUser().getUsername())
+                || hasTestDataMarker(comment.getPost().getUser().getFullName())
+                || hasTestDataMarker(comment.getPost().getUser().getEmail());
+    }
+
+    private boolean hasTestDataMarker(String value) {
+        if (value == null) {
+            return false;
+        }
+
+        String normalizedValue = value.toLowerCase(Locale.ROOT);
+        return normalizedValue.contains("cypress") || normalizedValue.contains("e2e_");
     }
 
     private CommentResponse mapToResponse(Comment comment, Long currentUserId) {

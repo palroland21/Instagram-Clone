@@ -13,4 +13,5 @@ public interface CommentRepository extends CrudRepository<Comment, Long> {
     List<Comment> findByPostOrderByPostedAtAsc(Post post);
     List<Comment> findByUser(User user);
     List<Comment> findByPostId(Long postId);
+    List<Comment> findAllByOrderByPostedAtDesc();
 }

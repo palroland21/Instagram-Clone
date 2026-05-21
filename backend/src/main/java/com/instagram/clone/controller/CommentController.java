@@ -32,8 +32,20 @@ public class CommentController {
 
     @GetMapping
     public List<CommentResponse> getAll(
-            @RequestParam(required = false) Long currentUserId
+            @RequestParam(required = false) Long currentUserId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false, defaultValue = "false") boolean excludeTestData
     ) {
+        if (page != null || size != null || excludeTestData) {
+            return commentService.getPage(
+                    currentUserId,
+                    page != null ? page : 0,
+                    size != null ? size : 20,
+                    excludeTestData
+            );
+        }
+
         return commentService.getAll(currentUserId);
     }
 

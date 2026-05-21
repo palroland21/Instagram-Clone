@@ -28,7 +28,7 @@ export function useAdminComments() {
             setLoading(true);
             setError("");
 
-            const data = await adminService.getComments();
+            const data = await adminService.getModerationComments();
             const normalizedComments = normalizeCommentsResponse(data);
 
             setComments(normalizedComments.filter((comment) => !isCypressTestComment(comment)));

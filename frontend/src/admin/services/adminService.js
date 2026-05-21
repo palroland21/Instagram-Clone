@@ -106,6 +106,10 @@ export const adminService = {
         return publicRequest("/posts");
     },
 
+    getModerationPosts() {
+        return publicRequest("/posts?page=0&size=20&excludeTestData=true");
+    },
+
     deletePost(postId) {
         return adminRequest(`/internal/admin/posts/${postId}`, {
             method: "DELETE",
@@ -133,5 +137,9 @@ export const adminService = {
     },
     getComments() {
         return publicRequest("/comments");
+    },
+
+    getModerationComments() {
+        return publicRequest("/comments?page=0&size=20&excludeTestData=true");
     },
 };

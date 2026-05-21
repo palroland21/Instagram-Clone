@@ -28,7 +28,7 @@ export function useAdminPosts() {
             setLoading(true);
             setError("");
 
-            const data = await adminService.getPosts();
+            const data = await adminService.getModerationPosts();
             const normalizedPosts = normalizePostsResponse(data);
 
             setPosts(normalizedPosts.filter((post) => !isCypressTestPost(post)));
