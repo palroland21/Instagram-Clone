@@ -36,12 +36,24 @@ public class PostController {
             @RequestParam(required = false) String tag,
             @RequestParam(required = false) String text,
             @RequestParam(required = false) Long userId,
-            @RequestParam(required = false, defaultValue = "false") boolean onlyMine
+            @RequestParam(required = false, defaultValue = "false") boolean onlyMine,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false, defaultValue = "false") boolean excludeTestData
     ) {
         Long authorFilterId = onlyMine ? currentUserId : userId;
 
         if (hasValue(tag) || hasValue(text) || authorFilterId != null) {
             return postService.search(tag, text, authorFilterId, currentUserId);
+        }
+
+        if (page != null || size != null || excludeTestData) {
+            return postService.getFeedPage(
+                    currentUserId,
+                    page != null ? page : 0,
+                    size != null ? size : 12,
+                    excludeTestData
+            );
         }
 
         if (currentUserId != null) {

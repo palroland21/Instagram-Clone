@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+    isCypressTestComment,
+    isCypressTestPost,
+    isCypressTestUser,
+} from "../../services";
 import { adminService } from "../services/adminService";
 
 function normalizeArray(data, key) {
@@ -43,9 +48,12 @@ export function useAdminStats() {
                 adminService.getComments(),
             ]);
 
-            const users = normalizeArray(usersData, "users");
-            const posts = normalizeArray(postsData, "posts");
-            const comments = normalizeArray(commentsData, "comments");
+            const users = normalizeArray(usersData, "users")
+                .filter((user) => !isCypressTestUser(user));
+            const posts = normalizeArray(postsData, "posts")
+                .filter((post) => !isCypressTestPost(post));
+            const comments = normalizeArray(commentsData, "comments")
+                .filter((comment) => !isCypressTestComment(comment));
 
             setStats({
                 usersCount: users.length,

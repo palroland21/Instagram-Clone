@@ -36,16 +36,27 @@ function AdminRoute({ children }) {
     return children
 }
 
+function AuthenticatedRoute({ children }) {
+    const token = getToken()
+
+    if (!token) {
+        return <Navigate to="/" replace />
+    }
+
+    return children
+}
+
 function App() {
     return (
         <Routes>
             <Route path="/" element={<AuthPage />} />
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/profile/:targetUsername" element={<ProfilePage />} />
+            <Route path="/home" element={<AuthenticatedRoute><HomePage /></AuthenticatedRoute>} />
+            <Route path="/profile" element={<AuthenticatedRoute><ProfilePage /></AuthenticatedRoute>} />
+            <Route path="/profile/:targetUsername" element={<AuthenticatedRoute><ProfilePage /></AuthenticatedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/search" element={<AuthenticatedRoute><SearchPage /></AuthenticatedRoute>} />
+            <Route path="/notifications" element={<AuthenticatedRoute><NotificationsPage /></AuthenticatedRoute>} />
+            <Route path="/notification" element={<AuthenticatedRoute><NotificationsPage /></AuthenticatedRoute>} />
             <Route path="/admin" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
             <Route path="/admin/posts" element={<AdminRoute><AdminPostsPage /></AdminRoute>} />

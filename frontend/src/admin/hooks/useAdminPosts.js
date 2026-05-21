@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { isCypressTestPost } from "../../services";
 import { adminService } from "../services/adminService";
 
 function normalizePostsResponse(data) {
@@ -30,7 +31,7 @@ export function useAdminPosts() {
             const data = await adminService.getPosts();
             const normalizedPosts = normalizePostsResponse(data);
 
-            setPosts(normalizedPosts);
+            setPosts(normalizedPosts.filter((post) => !isCypressTestPost(post)));
         } catch (err) {
             setError(err.message || "Could not load posts.");
         } finally {

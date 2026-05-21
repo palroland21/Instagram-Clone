@@ -1,5 +1,6 @@
 import { apiJsonRequest, apiRequest, buildFileUrl } from './apiClient'
 import { fetchComments, normalizeComment, sortCommentsByVotes } from './commentService'
+import { isCypressTestComment, isCypressTestPost } from './testDataFilter'
 import { fetchUsers } from './userService'
 
 function getOwnerId(item) {
@@ -57,7 +58,17 @@ export function sortPostsNewestFirst(posts) {
     return [...posts].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
 }
 
-export function fetchPosts({ token, currentUserId, tag, text, userId, onlyMine } = {}) {
+export function fetchPosts({
+    token,
+    currentUserId,
+    tag,
+    text,
+    userId,
+    onlyMine,
+    page,
+    size,
+    excludeTestData,
+} = {}) {
     const params = new URLSearchParams()
 
     if (currentUserId) params.set('currentUserId', currentUserId)
@@ -65,6 +76,9 @@ export function fetchPosts({ token, currentUserId, tag, text, userId, onlyMine }
     if (text) params.set('text', text)
     if (userId) params.set('userId', userId)
     if (onlyMine) params.set('onlyMine', 'true')
+    if (page !== undefined) params.set('page', page)
+    if (size !== undefined) params.set('size', size)
+    if (excludeTestData) params.set('excludeTestData', 'true')
 
     const query = params.toString() ? `?${params.toString()}` : ''
 
@@ -74,16 +88,33 @@ export function fetchPosts({ token, currentUserId, tag, text, userId, onlyMine }
     })
 }
 
-export async function fetchFeedPosts({ token, currentUserId }) {
-    const [postsData, usersData] = await Promise.all([
-        fetchPosts({ token, currentUserId }),
-        fetchUsers(token),
-    ])
-
-    const usersMap = new Map(usersData.map((user) => [Number(user.id), user]))
+export async function fetchFeedPosts({
+    token,
+    currentUserId,
+    page = 0,
+    size = 12,
+}) {
+    const postsData = await fetchPosts({
+        token,
+        currentUserId,
+        page,
+        size,
+        excludeTestData: true,
+    })
+    const usersMap = new Map()
+    const visiblePosts = postsData.filter((post) => !isCypressTestPost(post))
 
     return sortPostsNewestFirst(
-        postsData.map((post) => normalizePost(post, usersMap))
+        visiblePosts.map((post) => {
+            const normalizedPost = normalizePost(post, usersMap)
+
+            return {
+                ...normalizedPost,
+                comments: normalizedPost.comments.filter(
+                    (comment) => !isCypressTestComment(comment)
+                ),
+            }
+        })
     )
 }
 

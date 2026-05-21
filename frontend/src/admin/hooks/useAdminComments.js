@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { isCypressTestComment } from "../../services";
 import { adminService } from "../services/adminService";
 
 function normalizeCommentsResponse(data) {
@@ -30,7 +31,7 @@ export function useAdminComments() {
             const data = await adminService.getComments();
             const normalizedComments = normalizeCommentsResponse(data);
 
-            setComments(normalizedComments);
+            setComments(normalizedComments.filter((comment) => !isCypressTestComment(comment)));
         } catch (err) {
             setError(err.message || "Could not load comments.");
         } finally {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { isCypressTestUser } from "../../services";
 import { adminService } from "../services/adminService";
 
 export function useAdminUsers() {
@@ -12,8 +13,11 @@ export function useAdminUsers() {
             setError("");
 
             const data = await adminService.getUsers();
+            const visibleUsers = Array.isArray(data)
+                ? data.filter((user) => !isCypressTestUser(user))
+                : [];
 
-            setUsers(Array.isArray(data) ? data : []);
+            setUsers(visibleUsers);
         } catch (err) {
             setError(err.message || "Could not load users.");
         } finally {

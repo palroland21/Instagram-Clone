@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Set;
 
 @Service
@@ -87,6 +88,35 @@ public class PostService {
         for (Post post : postRepository.findAllByOrderByCreatedAtDesc()) {
             responses.add(mapToResponse(post, currentUserId));
         }
+        return responses;
+    }
+
+    public List<PostResponse> getFeedPage(Long currentUserId, int page, int size, boolean excludeTestData) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 20);
+        int firstVisibleIndex = safePage * safeSize;
+
+        List<PostResponse> responses = new ArrayList<>();
+        int visibleIndex = 0;
+
+        for (Post post : postRepository.findAllByOrderByCreatedAtDesc()) {
+            if (excludeTestData && isCypressTestPost(post)) {
+                continue;
+            }
+
+            if (visibleIndex < firstVisibleIndex) {
+                visibleIndex++;
+                continue;
+            }
+
+            responses.add(mapToResponse(post, currentUserId));
+            visibleIndex++;
+
+            if (responses.size() >= safeSize) {
+                break;
+            }
+        }
+
         return responses;
     }
 
@@ -237,6 +267,23 @@ public class PostService {
         }
 
         return value.trim().replaceFirst("^#", "");
+    }
+
+    private boolean isCypressTestPost(Post post) {
+        return hasTestDataMarker(post.getTitle())
+                || hasTestDataMarker(post.getCaption())
+                || hasTestDataMarker(post.getUser().getUsername())
+                || hasTestDataMarker(post.getUser().getFullName())
+                || hasTestDataMarker(post.getUser().getEmail());
+    }
+
+    private boolean hasTestDataMarker(String value) {
+        if (value == null) {
+            return false;
+        }
+
+        String normalizedValue = value.toLowerCase(Locale.ROOT);
+        return normalizedValue.contains("cypress") || normalizedValue.contains("e2e_");
     }
 
     private PostResponse mapToResponse(Post post, Long currentUserId) {

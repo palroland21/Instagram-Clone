@@ -4,6 +4,7 @@ import {
     fetchFollowing,
     fetchUsers,
     getToken,
+    isCypressTestUser,
     toggleFollow as toggleFollowRequest,
 } from '../services'
 
@@ -27,6 +28,7 @@ function RightSidebar() {
                 const myUsername = me?.username
                 const others = users
                     .filter(u => u.username !== myUsername)
+                    .filter(u => !isCypressTestUser(u))
                     .sort(() => Math.random() - 0.5)
                     .slice(0, 5)
 
