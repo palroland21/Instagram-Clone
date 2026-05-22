@@ -32,7 +32,7 @@ jobs:
         run: mvn -DskipTests clean package
 
   frontend:
-    name: Frontend lint and build
+    name: Frontend tests, lint and build
     runs-on: ubuntu-latest
 
     defaults:
@@ -56,6 +56,9 @@ jobs:
       - name: Run lint
         run: npm run lint
 
+      - name: Run automated tests
+        run: npm run test -- --run
+
       - name: Build frontend
         run: npm run build
 
@@ -68,4 +71,4 @@ jobs:
 
     steps:
       - name: Simulate deployment step
-        run: echo "Backend and frontend passed. Deployment would run here when the app is hosted."
+        run: echo "Backend build, frontend tests, lint and build passed. Deployment would run here when the app is hosted."

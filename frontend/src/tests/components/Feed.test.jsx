@@ -71,7 +71,7 @@ describe('Feed', () => {
         ];
 
         const fetchMock = vi.fn((url) => {
-            if (url === 'http://localhost:9090/posts?currentUserId=1') {
+            if (url === 'http://localhost:9090/posts?currentUserId=1&page=0&size=12&excludeTestData=true') {
                 return Promise.resolve({
                     ok: true,
                     json: async () => posts,
@@ -148,7 +148,7 @@ describe('Feed', () => {
         ];
 
         const fetchMock = vi.fn((url) => {
-            if (url === 'http://localhost:9090/posts?currentUserId=1') {
+            if (url === 'http://localhost:9090/posts?currentUserId=1&page=0&size=12&excludeTestData=true') {
                 return Promise.resolve({
                     ok: true,
                     json: async () => posts,

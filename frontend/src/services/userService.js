@@ -1,4 +1,5 @@
 import { apiJsonRequest, apiRequest, decodeJwtPayload } from './apiClient'
+import { isCypressTestUser } from './testDataFilter'
 
 export function fetchUsers(token) {
     return apiRequest('/users', {
@@ -14,6 +15,13 @@ export function fetchUserById(userId, token) {
     })
 }
 
+export function fetchUserByUsername(username, token) {
+    return apiRequest(`/users/username/${encodeURIComponent(username)}`, {
+        token,
+        errorMessage: 'Failed to fetch user',
+    })
+}
+
 export function updateUser({ token, userId, userData }) {
     return apiJsonRequest(`/users/${userId}`, {
         method: 'PUT',
@@ -23,18 +31,26 @@ export function updateUser({ token, userId, userData }) {
     })
 }
 
-export function fetchFollowers(userId, token) {
-    return apiRequest(`/users/${userId}/followers`, {
+export async function fetchFollowers(userId, token) {
+    const followers = await apiRequest(`/users/${userId}/followers`, {
         token,
         errorMessage: 'Failed to fetch followers',
     })
+
+    return Array.isArray(followers)
+        ? followers.filter((user) => !isCypressTestUser(user))
+        : followers
 }
 
-export function fetchFollowing(userId, token) {
-    return apiRequest(`/users/${userId}/following`, {
+export async function fetchFollowing(userId, token) {
+    const following = await apiRequest(`/users/${userId}/following`, {
         token,
         errorMessage: 'Failed to fetch following',
     })
+
+    return Array.isArray(following)
+        ? following.filter((user) => !isCypressTestUser(user))
+        : following
 }
 
 export function toggleFollow({ token, currentUserId, targetUserId, isFollowing }) {

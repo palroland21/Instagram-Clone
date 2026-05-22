@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchNotificationsData } from '../../pages/notification-page/notification-page-components/notificationsApi';
 import {
-    buildNotifications,
     hasUnreadNotifications,
     markNotificationsAsSeen,
     NOTIFICATIONS_SEEN_EVENT,
@@ -28,16 +27,8 @@ function useUnreadNotifications() {
 
         const checkUnreadNotifications = async () => {
             try {
-                const data = await fetchNotificationsData({
+                const notificationsList = await fetchNotificationsData({
                     token,
-                    currentUserId: storedUserId,
-                });
-
-                const notificationsList = buildNotifications({
-                    postsData: data.postsData,
-                    commentsData: data.commentsData,
-                    postVotesData: data.postVotesData,
-                    usersData: data.usersData,
                     currentUserId: storedUserId,
                 });
 

@@ -3,7 +3,6 @@ import Sidebar from '../../../components/Sidebar'
 import NotificationSection from './NotificationSection'
 import { fetchNotificationsData } from './notificationsApi'
 import {
-    buildNotifications,
     groupNotifications,
     markNotificationsAsSeen,
 } from './notificationHelpers'
@@ -30,16 +29,8 @@ function NotificationsContent() {
                     return
                 }
 
-                const data = await fetchNotificationsData({
+                const notificationsList = await fetchNotificationsData({
                     token,
-                    currentUserId,
-                })
-
-                const notificationsList = buildNotifications({
-                    postsData: data.postsData,
-                    commentsData: data.commentsData,
-                    postVotesData: data.postVotesData,
-                    usersData: data.usersData,
                     currentUserId,
                 })
 

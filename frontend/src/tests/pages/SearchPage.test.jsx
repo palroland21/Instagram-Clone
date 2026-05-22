@@ -62,7 +62,7 @@ const mockSuccessfulSearchRequests = () => {
     const comments = [];
 
     const fetchMock = vi.fn((url) => {
-        if (url === 'http://localhost:9090/posts?currentUserId=1') {
+        if (url === 'http://localhost:9090/posts?currentUserId=1&page=0&size=20&excludeTestData=true') {
             return Promise.resolve({
                 ok: true,
                 json: async () => posts,

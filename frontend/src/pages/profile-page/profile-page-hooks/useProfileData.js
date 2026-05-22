@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import {
     decodeJwtPayload,
-    fetchPosts,
-    fetchUserById,
-    fetchUsers,
+    fetchProfilePosts,
+    fetchUserByUsername,
     getCurrentUserId,
     getToken,
+    isCypressTestUser,
 } from '../../../services';
 import { sortPostsNewestFirst } from '../profileUtils';
 
@@ -43,35 +43,31 @@ function useProfileData({ navigate, targetUsername }) {
             const usernameToLoad = targetUsername || payload.sub;
 
             try {
-                const [users, allPosts] = await Promise.all([
-                    fetchUsers(token),
-                    fetchPosts({ token }),
-                ]);
+                let fullUser;
 
-                const basicUser = users.find(
-                    item => item.username === usernameToLoad
-                );
-
-                if (!basicUser) {
+                try {
+                    fullUser = await fetchUserByUsername(usernameToLoad, token);
+                } catch {
                     navigate('/home');
                     return;
                 }
 
-                let fullUser = basicUser;
-
-                try {
-                    const userDetails = await fetchUserById(basicUser.id, token);
-                    fullUser = {
-                        ...basicUser,
-                        ...userDetails,
-                    };
-                } catch {
-                    fullUser = basicUser;
+                if (isCypressTestUser(fullUser)) {
+                    navigate('/home');
+                    return;
                 }
 
                 if (cancelled) return;
 
-                const userPosts = allPosts.filter(
+                const userPostsData = await fetchProfilePosts({
+                    token,
+                    userId: fullUser.id,
+                    currentUserId,
+                });
+
+                if (cancelled) return;
+
+                const userPosts = userPostsData.filter(
                     post => Number(post.userId) === Number(fullUser.id)
                 );
 
@@ -89,7 +85,7 @@ function useProfileData({ navigate, targetUsername }) {
         return () => {
             cancelled = true;
         };
-    }, [navigate, targetUsername]);
+    }, [currentUserId, navigate, targetUsername]);
 
     const addCreatedPost = newPost => {
         if (newPost) {

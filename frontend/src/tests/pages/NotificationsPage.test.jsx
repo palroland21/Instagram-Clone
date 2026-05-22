@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import NotificationsPage from '../../pages/notification-page/NotificationsPage';
+import { buildNotifications } from '../../pages/notification-page/notification-page-components/notificationHelpers';
 
 vi.mock('../../components/Sidebar', () => ({
     default: () => <aside data-testid="sidebar">Sidebar</aside>,
@@ -13,31 +14,16 @@ const mockNotificationsRequests = ({
                                        users = [],
                                    } = {}) => {
     const fetchMock = vi.fn((url) => {
-        if (url === 'http://localhost:9090/posts?currentUserId=1') {
+        if (url === 'http://localhost:9090/notifications?userId=1') {
             return Promise.resolve({
                 ok: true,
-                json: async () => posts,
-            });
-        }
-
-        if (url === 'http://localhost:9090/comments') {
-            return Promise.resolve({
-                ok: true,
-                json: async () => comments,
-            });
-        }
-
-        if (url === 'http://localhost:9090/post-votes') {
-            return Promise.resolve({
-                ok: true,
-                json: async () => postVotes,
-            });
-        }
-
-        if (url === 'http://localhost:9090/users') {
-            return Promise.resolve({
-                ok: true,
-                json: async () => users,
+                json: async () => buildNotifications({
+                    postsData: posts,
+                    commentsData: comments,
+                    postVotesData: postVotes,
+                    usersData: users,
+                    currentUserId: 1,
+                }),
             });
         }
 
@@ -214,34 +200,7 @@ describe('NotificationsPage', () => {
         expect(screen.queryByText(/Own comment should not appear/i)).not.toBeInTheDocument();
 
         expect(fetchMock).toHaveBeenCalledWith(
-            'http://localhost:9090/posts?currentUserId=1',
-            {
-                headers: {
-                    Authorization: 'Bearer fake-token',
-                },
-            }
-        );
-
-        expect(fetchMock).toHaveBeenCalledWith(
-            'http://localhost:9090/comments',
-            {
-                headers: {
-                    Authorization: 'Bearer fake-token',
-                },
-            }
-        );
-
-        expect(fetchMock).toHaveBeenCalledWith(
-            'http://localhost:9090/post-votes',
-            {
-                headers: {
-                    Authorization: 'Bearer fake-token',
-                },
-            }
-        );
-
-        expect(fetchMock).toHaveBeenCalledWith(
-            'http://localhost:9090/users',
+            'http://localhost:9090/notifications?userId=1',
             {
                 headers: {
                     Authorization: 'Bearer fake-token',
@@ -392,30 +351,9 @@ describe('NotificationsPage', () => {
         localStorage.setItem('userId', '1');
 
         const fetchMock = vi.fn((url) => {
-            if (url === 'http://localhost:9090/posts?currentUserId=1') {
+            if (url === 'http://localhost:9090/notifications?userId=1') {
                 return Promise.resolve({
                     ok: false,
-                    json: async () => [],
-                });
-            }
-
-            if (url === 'http://localhost:9090/comments') {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => [],
-                });
-            }
-
-            if (url === 'http://localhost:9090/post-votes') {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => [],
-                });
-            }
-
-            if (url === 'http://localhost:9090/users') {
-                return Promise.resolve({
-                    ok: true,
                     json: async () => [],
                 });
             }

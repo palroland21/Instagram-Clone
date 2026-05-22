@@ -86,14 +86,14 @@ const mockSuccessfulProfileRequests = () => {
     ];
 
     const fetchMock = vi.fn((url) => {
-        if (url === 'http://localhost:9090/users') {
+        if (url === 'http://localhost:9090/users/username/vasi') {
             return Promise.resolve({
                 ok: true,
-                json: async () => users,
+                json: async () => users[0],
             });
         }
 
-        if (url === 'http://localhost:9090/posts') {
+        if (url === 'http://localhost:9090/posts/user/1?excludeTestData=true') {
             return Promise.resolve({
                 ok: true,
                 json: async () => posts,
