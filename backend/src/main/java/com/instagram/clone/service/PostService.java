@@ -91,6 +91,20 @@ public class PostService {
         return responses;
     }
 
+    public List<PostResponse> getByUserId(Long userId, Long currentUserId, boolean excludeTestData) {
+        List<PostResponse> responses = new ArrayList<>();
+
+        for (Post post : postRepository.findByUserIdOrderByCreatedAtDesc(userId)) {
+            if (excludeTestData && isCypressTestPost(post)) {
+                continue;
+            }
+
+            responses.add(mapToResponse(post, currentUserId, excludeTestData));
+        }
+
+        return responses;
+    }
+
     public List<PostResponse> getFeedPage(Long currentUserId, int page, int size, boolean excludeTestData) {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), 20);
@@ -109,7 +123,7 @@ public class PostService {
                 continue;
             }
 
-            responses.add(mapToResponse(post, currentUserId));
+            responses.add(mapToResponse(post, currentUserId, excludeTestData));
             visibleIndex++;
 
             if (responses.size() >= safeSize) {
@@ -287,6 +301,10 @@ public class PostService {
     }
 
     private PostResponse mapToResponse(Post post, Long currentUserId) {
+        return mapToResponse(post, currentUserId, false);
+    }
+
+    private PostResponse mapToResponse(Post post, Long currentUserId, boolean excludeTestData) {
         PostResponse response = new PostResponse();
         response.setId(post.getId());
         response.setUserId(post.getUser().getId());
@@ -316,6 +334,10 @@ public class PostService {
 
         List<CommentResponse> commentResponses = new ArrayList<>();
         for (Comment comment : comments) {
+            if (excludeTestData && isCypressTestComment(comment)) {
+                continue;
+            }
+
             CommentResponse cr = new CommentResponse();
 
             int commentLikeCount = 0;
@@ -437,6 +459,13 @@ public class PostService {
         }
 
         return PostStatus.JUST_POSTED;
+    }
+
+    private boolean isCypressTestComment(Comment comment) {
+        return hasTestDataMarker(comment.getText())
+                || hasTestDataMarker(comment.getUser().getUsername())
+                || hasTestDataMarker(comment.getUser().getFullName())
+                || hasTestDataMarker(comment.getUser().getEmail());
     }
 
     private List<String> extractPictureUrls(List<Picture> pictures) {

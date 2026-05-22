@@ -31,6 +31,11 @@ public class UserController {
         return toResponse(userService.getById(id));
     }
 
+    @GetMapping("/username/{username}")
+    public UserResponse getByUsername(@PathVariable String username) {
+        return toResponse(userService.findByUsername(username));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody UserRequest request) {
         try {

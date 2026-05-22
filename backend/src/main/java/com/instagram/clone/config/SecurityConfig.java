@@ -30,6 +30,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/pictures/**").permitAll()
                         .requestMatchers("/post-votes/**").permitAll()
+                        .requestMatchers("/notifications/**").permitAll()
                         .requestMatchers("/comments/**").permitAll()
                         .requestMatchers("/posts/**").permitAll()
                         .requestMatchers("/comment-votes/**").permitAll()

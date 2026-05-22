@@ -30,6 +30,15 @@ public class PostController {
         return postService.getById(id, currentUserId);
     }
 
+    @GetMapping("/user/{userId}")
+    public List<PostResponse> getByUserId(
+            @PathVariable Long userId,
+            @RequestParam(required = false) Long currentUserId,
+            @RequestParam(required = false, defaultValue = "false") boolean excludeTestData
+    ) {
+        return postService.getByUserId(userId, currentUserId, excludeTestData);
+    }
+
     @GetMapping
     public List<PostResponse> getAll(
             @RequestParam(required = false) Long currentUserId,

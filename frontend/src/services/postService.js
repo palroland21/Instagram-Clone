@@ -1,7 +1,6 @@
 import { apiJsonRequest, apiRequest, buildFileUrl } from './apiClient'
-import { fetchComments, normalizeComment, sortCommentsByVotes } from './commentService'
+import { normalizeComment, sortCommentsByVotes } from './commentService'
 import { isCypressTestComment, isCypressTestPost } from './testDataFilter'
-import { fetchUsers } from './userService'
 
 function getOwnerId(item) {
     return item.userId ?? item.authorId ?? item.user?.id ?? item.author?.id ?? null
@@ -58,7 +57,18 @@ export function sortPostsNewestFirst(posts) {
     return [...posts].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
 }
 
-export function fetchPosts({
+function hideTestPostData(post) {
+    if (!Array.isArray(post.comments)) {
+        return post
+    }
+
+    return {
+        ...post,
+        comments: post.comments.filter((comment) => !isCypressTestComment(comment)),
+    }
+}
+
+export async function fetchPosts({
     token,
     currentUserId,
     tag,
@@ -82,10 +92,18 @@ export function fetchPosts({
 
     const query = params.toString() ? `?${params.toString()}` : ''
 
-    return apiRequest(`/posts${query}`, {
+    const posts = await apiRequest(`/posts${query}`, {
         token,
         errorMessage: 'Failed to fetch posts',
     })
+
+    if (!Array.isArray(posts)) {
+        return posts
+    }
+
+    return posts
+        .filter((post) => !isCypressTestPost(post))
+        .map(hideTestPostData)
 }
 
 export async function fetchFeedPosts({
@@ -119,26 +137,29 @@ export async function fetchFeedPosts({
 }
 
 export async function fetchSearchPosts({ token, currentUserId }) {
-    const [postsData, usersData, commentsData] = await Promise.all([
-        fetchPosts({ token, currentUserId }),
-        fetchUsers(token),
-        fetchComments(token).catch(() => []),
-    ])
-
-    const usersMap = new Map(usersData.map((user) => [Number(user.id), user]))
+    const postsData = await fetchPosts({
+        token,
+        currentUserId,
+        page: 0,
+        size: 20,
+        excludeTestData: true,
+    })
 
     return sortPostsNewestFirst(
-        postsData.map((post) => {
-            const postComments = commentsData
-                .filter((comment) => Number(comment.postId) === Number(post.id))
-                .map((comment) => normalizeComment(comment, usersMap))
-
-            return {
-                ...normalizePost(post, usersMap),
-                comments: postComments,
-            }
-        })
+        postsData.map((post) => normalizePost(post))
     )
+}
+
+export function fetchProfilePosts({ token, userId, currentUserId }) {
+    const params = new URLSearchParams()
+
+    if (currentUserId) params.set('currentUserId', currentUserId)
+    params.set('excludeTestData', 'true')
+
+    return apiRequest(`/posts/user/${userId}?${params.toString()}`, {
+        token,
+        errorMessage: 'Failed to fetch profile posts',
+    })
 }
 
 export function createPost({ token, userId, pictureUrls, caption, location, tags }) {

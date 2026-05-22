@@ -1,4 +1,5 @@
 import { apiJsonRequest, apiRequest, buildFileUrl } from './apiClient'
+import { isCypressTestComment } from './testDataFilter'
 
 export function normalizeComment(comment, usersMap = new Map(), fallbackUserId = null) {
     const authorId = Number(
@@ -49,11 +50,28 @@ export function sortCommentsByVotes(comments) {
     })
 }
 
-export function fetchComments(token) {
-    return apiRequest('/comments', {
+export async function fetchComments(token, {
+    page,
+    size,
+    excludeTestData,
+} = {}) {
+    const params = new URLSearchParams()
+
+    if (page !== undefined) params.set('page', page)
+    if (size !== undefined) params.set('size', size)
+    if (excludeTestData) params.set('excludeTestData', 'true')
+
+    const query = params.toString() ? `?${params.toString()}` : ''
+    const comments = await apiRequest(`/comments${query}`, {
         token,
         errorMessage: 'Failed to fetch comments',
     })
+
+    if (!Array.isArray(comments)) {
+        return comments
+    }
+
+    return comments.filter((comment) => !isCypressTestComment(comment))
 }
 
 export function createComment({ token, userId, postId, text }) {

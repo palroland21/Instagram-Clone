@@ -3,6 +3,8 @@ package com.instagram.clone.repository;
 import com.instagram.clone.model.Comment;
 import com.instagram.clone.model.Post;
 import com.instagram.clone.model.User;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +16,16 @@ public interface CommentRepository extends CrudRepository<Comment, Long> {
     List<Comment> findByUser(User user);
     List<Comment> findByPostId(Long postId);
     List<Comment> findAllByOrderByPostedAtDesc();
+
+    @Query("""
+            select c
+            from Comment c
+            join fetch c.user
+            join fetch c.post p
+            join fetch p.user
+            where p.user.id = :ownerId
+              and c.user.id <> :ownerId
+            order by c.postedAt desc
+            """)
+    List<Comment> findNotificationsForPostOwner(@Param("ownerId") Long ownerId);
 }
