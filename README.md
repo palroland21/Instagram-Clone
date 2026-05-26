@@ -433,7 +433,3 @@ Project developed by:
 - Andrei Mandroc
 
 ---
-
-## Educational Purpose
-
-This project was developed for educational purposes as part of a Software Design assignment.
